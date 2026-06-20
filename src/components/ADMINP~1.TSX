@@ -49,7 +49,7 @@ export default function AdminPanel({
   onLogout,
   onPreviewStore,
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tema' | 'config' | 'productos' | 'promociones' | 'encargos' | 'colaborador'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tema' | 'config' | 'productos' | 'promociones' | 'encargos' | 'colaborador' | 'novedades'>('dashboard');
   
   // Local Config states
   const [storeName, setStoreName] = useState(tenant.storeName);
@@ -72,6 +72,12 @@ export default function AdminPanel({
   const [tempValue, setTempValue] = useState('');
   const [editingProdId, setEditingProdId] = useState<string | null>(null);
   const [storeLogo, setStoreLogo] = useState(tenant.logo || '');
+  const [novName, setNovName] = useState('');
+  const [novSizes, setNovSizes] = useState('38, 39, 40');
+  const [novDesc, setNovDesc] = useState('');
+  const [novPrice, setNovPrice] = useState('55000');
+  const [novImage, setNovImage] = useState('');
+  const [editingNovId, setEditingNovId] = useState<string | null>(null);
 
   // Local Promo States
   const [newPromoName, setNewPromoName] = useState('');
@@ -160,6 +166,32 @@ export default function AdminPanel({
     setNewProdLast(prod.isLastAvailable);
     setNewProdCustomFields(prod.customFields || []);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cleanNovedadForm = () => {
+    setNovName(''); setNovSizes('38, 39, 40'); setNovDesc(''); setNovPrice('55000'); setNovImage(''); setEditingNovId(null);
+  };
+  const startEditNovedad = (prod: Product) => {
+    setEditingNovId(prod.id); setNovName(prod.name); setNovSizes(prod.sizes.join(', '));
+    setNovDesc(prod.description); setNovPrice(String(prod.price)); setNovImage(prod.image || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const handleAddNovedadSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novName.trim()) return;
+    const wasEditing = !!editingNovId;
+    const id = editingNovId || `nov-${Date.now()}`;
+    if (editingNovId) onDeleteProduct(editingNovId);
+    onAddProduct({
+      id, tenantId: tenant.slug, name: novName,
+      sizes: novSizes.split(',').map(s => s.trim()).filter(Boolean),
+      description: novDesc,
+      image: novImage || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60"><rect width="100" height="60" rx="10" fill="%23f3f4f6"/><text x="50" y="36" font-family="sans-serif" font-size="15" fill="%239ca3af" text-anchor="middle">Novedad</text></svg>',
+      price: parseFloat(novPrice) || 0, isLastAvailable: false, isNovedad: true,
+      customFields: [], createdAt: new Date().toISOString(),
+    });
+    cleanNovedadForm();
+    alert(wasEditing ? '¡Novedad actualizada!' : '¡Novedad agregada!');
   };
 
   const handleAddProductSubmit = (e: React.FormEvent) => {
@@ -355,6 +387,7 @@ export default function AdminPanel({
               { id: 'tema', name: 'Temas / Estilos', icon: <Palette size={17} /> },
               { id: 'config', name: 'Configuración / Info', icon: <Settings size={17} /> },
               { id: 'productos', name: 'Publicar Calzados', icon: <Footprints size={17} /> },
+              { id: 'novedades', name: 'Últimas Novedades', icon: <Footprints size={17} /> },
               { id: 'promociones', name: 'Campañas Promos', icon: <Tag size={17} /> },
               { id: 'encargos', name: 'Gestionar Encargos', icon: <FileClock size={17} /> },
               { id: 'colaborador', name: 'Asignar Colaborador', icon: <Users size={17} /> },
@@ -1152,6 +1185,79 @@ export default function AdminPanel({
                             >
                               <Trash size={15} />
                             </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'novedades' && (
+              <div className="space-y-6" id="view-novedades">
+                <div className="border-b pb-4 theme-border-main">
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white">✨ Últimas Novedades</h2>
+                  <p className="text-xs text-gray-500">Aparecen en una sección propia “Últimas Novedades” de tu tienda, separada del catálogo normal.</p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
+                  <form onSubmit={handleAddNovedadSubmit} className="space-y-4">
+                    <h3 className="text-sm uppercase font-black text-slate-400">{editingNovId ? 'Editar Novedad' : 'Agregar Novedad'}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Nombre</label>
+                        <input type="text" value={novName} onChange={(e) => setNovName(e.target.value)} placeholder="Ej. Edición Limitada 2026" className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-lg" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Precio (ARS)</label>
+                        <input type="number" value={novPrice} onChange={(e) => setNovPrice(e.target.value)} className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-lg" required />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Tallas (separadas por coma)</label>
+                        <input type="text" value={novSizes} onChange={(e) => setNovSizes(e.target.value)} placeholder="38, 39, 40" className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-lg" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Imagen</label>
+                        <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files[0]) handleImageUpload(e.target.files[0], setNovImage); }} className="w-full text-xs p-2.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-gray-600 dark:text-gray-300" />
+                      </div>
+                    </div>
+                    {novImage && (
+                      <div className="flex gap-2 items-center p-3 bg-gray-50 dark:bg-zinc-800/60 rounded-xl border">
+                        <span className="text-xs font-bold text-gray-500">Imagen:</span>
+                        <img src={novImage} alt="thumb" className="w-12 h-12 rounded-lg object-contain bg-white p-1 border" />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">Descripción</label>
+                      <textarea value={novDesc} onChange={(e) => setNovDesc(e.target.value)} className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-lg h-20" />
+                    </div>
+                    <button type="submit" className="w-full theme-btn-primary p-3 rounded-lg font-bold text-sm flex items-center justify-center gap-1 cursor-pointer">
+                      ✨ {editingNovId ? 'Guardar Cambios' : 'Agregar a Novedades'}
+                    </button>
+                  </form>
+                  <div className="space-y-4">
+                    <h3 className="text-sm uppercase font-black text-slate-400">Tus Novedades</h3>
+                    {products.filter(p => p.tenantId === tenant.slug && p.isNovedad).length === 0 ? (
+                      <div className="p-8 text-center text-gray-400 bg-slate-50 dark:bg-zinc-800/40 border rounded-2xl">Todavía no tenés novedades.</div>
+                    ) : (
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        {products.filter(p => p.tenantId === tenant.slug && p.isNovedad).map(p => (
+                          <div key={p.id} className="p-4 bg-white dark:bg-zinc-800 rounded-xl border flex gap-3 justify-between items-center">
+                            <div className="flex gap-3 items-center min-w-0">
+                              <div className="w-12 h-12 p-1 border bg-slate-50 rounded-lg shrink-0 flex items-center justify-center">
+                                <img src={p.image} referrerPolicy="no-referrer" alt="" className="w-full h-full object-contain" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-sm truncate theme-text-main">{p.name}</h4>
+                                <p className="text-[11px] text-gray-400">${p.price.toLocaleString('es-AR')} | {p.sizes.join(', ')}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <button onClick={() => startEditNovedad(p)} className="px-2.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-gray-400 hover:text-amber-600 rounded-lg border text-sm" title="Editar">✏️</button>
+                              <button onClick={() => { if (confirm('¿Eliminar esta novedad?')) onDeleteProduct(p.id); }} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg border"><Trash size={15} /></button>
                             </div>
                           </div>
                         ))}
