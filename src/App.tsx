@@ -200,17 +200,30 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminUser, colabUser, tenants, products, promotions, orders, collaborators]);
 
+  // --- Modo oscuro SOLO en el panel admin (la tienda pública no se toca) ---
+  useEffect(() => {
+    const root = document.documentElement;
+    if (adminUser && !adminPreviewMode) root.classList.add('dark');
+    else root.classList.remove('dark');
+    return () => { root.classList.remove('dark'); };
+  }, [adminUser, adminPreviewMode]);
+
   // Filter Catalog
   const activeProducts = products.filter(p => p.tenantId === activeTenant.slug);
   const activePromos = promotions.filter(p => p.tenantId === activeTenant.slug);
 
   // Cart action handlers
   const handleAddToCart = (item: Product | Promotion, isPromo: boolean) => {
-    const selectedSize = selectedSizes[item.id];
-    
+    // Si no eligió talle, tomamos el primero disponible (o 'Único' si no hay talles).
+    let selectedSize = selectedSizes[item.id];
     if (!selectedSize) {
-      alert('Por favor, selecciona tu talla antes de agregar al canasto.');
-      return;
+      const sizes = (item as any).sizes as string[] | undefined;
+      if (sizes && sizes.length > 0) {
+        selectedSize = sizes[0];
+        setSelectedSizes(prev => ({ ...prev, [item.id]: selectedSize }));
+      } else {
+        selectedSize = 'Único';
+      }
     }
 
     const cartItemId = `${item.id}-${selectedSize}`;
@@ -987,16 +1000,12 @@ export default function App() {
                             type="password"
                             value={passwordInput}
                             onChange={(e) => setPasswordInput(e.target.value)}
-                            placeholder={authRoleSelection === 'admin' ? 'admin123' : 'mateo123 / sofia123'}
+                            placeholder="Tu contraseña"
                             className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)]"
                             required
                           />
                         </div>
 
-                        <div className="text-[10px] text-slate-500 italic bg-gray-50 p-2.5 rounded-lg">
-                          • Tip Demo Admin: user <strong className="text-emerald-600">admin</strong> y pass <strong className="text-emerald-600">admin123</strong> (para {activeTenantSlug}). <br/>
-                          • Tip Demo Colab: user <strong className="text-emerald-600">{activeTenantSlug === 'urban-shoes' ? 'mateo' : 'sofia'}</strong> y pass <strong className="text-emerald-600">{activeTenantSlug === 'urban-shoes' ? 'mateo123' : 'sofia123'}</strong>.
-                        </div>
                       </div>
 
                       <div className="flex gap-2">
