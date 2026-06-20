@@ -471,8 +471,8 @@ export default function App() {
           <nav className="sticky top-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b theme-border-main py-4 px-6 z-30 flex justify-between items-center transition-colors">
             {/* Store brand */}
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 theme-btn-primary rounded-xl flex items-center justify-center font-black text-white text-md shadow-xs">
-                {activeTenant.storeName.charAt(0)}
+              <div className="w-9 h-9 theme-btn-primary rounded-xl flex items-center justify-center font-black text-white text-md shadow-xs overflow-hidden">
+                {activeTenant.logo ? <img src={activeTenant.logo} alt="logo" className="w-full h-full object-cover" /> : activeTenant.storeName.charAt(0)}
               </div>
               <div>
                 <span className="font-extrabold text-sm sm:text-base tracking-tight theme-text-main block">
@@ -543,7 +543,7 @@ export default function App() {
           {/* COMPACT PWA STATUS BANNER FOR OFFLINE CONFIDENCE */}
           <div className="bg-gray-50 dark:bg-zinc-900 border-b theme-border-main p-3 text-center text-xs text-gray-500 dark:text-gray-400 flex justify-center items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-            <span>Estable y optimizada para uso sin conexión (PWA) | Retiros listos en menos de 2 horas.</span>
+            <span>Retiros listos en menos de 1 hora.</span>
           </div>
 
           {/* MAIN CATALOG AREA */}
