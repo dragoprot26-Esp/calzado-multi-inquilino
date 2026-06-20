@@ -86,6 +86,7 @@ export interface TenantConfig {
   storeEmail: string;
   storeAddress: string;
   storeCoordinates?: string; // Maps location string
+  logo?: string; // logo del local (url o base64)
   referralId?: string;
   fontStyle?: 'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold';
 }
