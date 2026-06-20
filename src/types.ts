@@ -17,6 +17,7 @@ export interface Product {
   image: string; // URL or Base64 string
   price: number;
   isLastAvailable: boolean;
+  isNovedad?: boolean;
   customFields: CustomField[];
   createdAt: string;
 }
