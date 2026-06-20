@@ -20,6 +20,7 @@ import ThemeStyles from './components/ThemeStyles';
 import CartModal from './components/CartModal';
 import AdminPanel from './components/AdminPanel';
 import CollaboratorPanel from './components/CollaboratorPanel';
+import * as cloud from './cloud';
 
 export default function App() {
   // --- Persistent Local Database State Engine ---
@@ -121,15 +122,13 @@ export default function App() {
   }, [orders]);
 
 
+
   // --- Routing & Active Tenants ---
   // Detect tenant in URL query, otherwise fallback to first tenant
   const [activeTenantSlug, setActiveTenantSlug] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
-    const slugParam = params.get('tenant') || params.get('referido');
-    if (slugParam && defaultTenants.some(t => t.slug === slugParam)) {
-      return slugParam;
-    }
-    return defaultTenants[0].slug;
+    const slugParam = params.get('tenant') || params.get('local') || params.get('referido');
+    return slugParam || defaultTenants[0].slug;
   });
 
   const activeTenant = tenants.find(t => t.slug === activeTenantSlug) || tenants[0];
@@ -157,6 +156,48 @@ export default function App() {
 
   // Share widgets feedback
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // --- NUBE: aplicar datos de un local al estado (scoped por código) ---
+  function applyCloudData(code: string, data: cloud.CloudData) {
+    if (data.config) {
+      const cfg = { ...(data.config as any), slug: code, licenseKey: (data.config as any).licenseKey || code } as TenantConfig;
+      setTenants(prev => { const others = prev.filter(t => t.slug !== code); return [cfg, ...others]; });
+    }
+    if (data.products) setProducts(prev => [...(data.products as any[]).map((p: any) => ({ ...p, tenantId: code })), ...prev.filter(p => p.tenantId !== code)]);
+    if (data.promotions) setPromotions(prev => [...(data.promotions as any[]).map((p: any) => ({ ...p, tenantId: code })), ...prev.filter(p => p.tenantId !== code)]);
+    if (data.orders) setOrders(prev => [...(data.orders as any[]).map((o: any) => ({ ...o, tenantId: code })), ...prev.filter(o => o.tenantId !== code)]);
+    if (data.collaborators) setCollaborators(prev => [...(data.collaborators as any[]).map((c: any) => ({ ...c, tenantId: code })), ...prev.filter(c => c.tenantId !== code)]);
+  }
+
+  // --- NUBE: catálogo público si la URL trae ?tenant=CODIGO ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = (params.get('tenant') || params.get('local') || params.get('referido') || '').trim();
+    if (!code) return;
+    (async () => {
+      const pub = await cloud.calzadoPublica(code);
+      if (pub && (pub as any).config) { applyCloudData(code, pub); setActiveTenantSlug(code); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- NUBE: guardar el local activo cuando hay sesión (debounce) ---
+  useEffect(() => {
+    const code = adminUser?.slug || (colabUser as any)?.tenantId;
+    if (!code) return;
+    const t = setTimeout(() => {
+      const cfg = tenants.find(x => x.slug === code) || adminUser || {};
+      cloud.cloudSave(code, {
+        config: cfg as any,
+        products: products.filter(p => p.tenantId === code),
+        promotions: promotions.filter(p => p.tenantId === code),
+        orders: orders.filter(o => o.tenantId === code),
+        collaborators: collaborators.filter(c => c.tenantId === code),
+      });
+    }, 900);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminUser, colabUser, tenants, products, promotions, orders, collaborators]);
 
   // Filter Catalog
   const activeProducts = products.filter(p => p.tenantId === activeTenant.slug);
@@ -231,6 +272,7 @@ export default function App() {
     };
 
     setOrders(prev => [newOrder, ...prev]);
+    if (!adminUser && !colabUser) cloud.calzadoAgregarPedido(activeTenant.slug, newOrder as any);
     setCart([]); // Clear the shopping cart
     return { code: pickupCode, success: true };
   };
@@ -245,46 +287,57 @@ export default function App() {
     setIsOpenAuthForm(true);
   };
 
-  const verifyLicense = () => {
-    const matched = tenants.find(t => t.licenseKey.trim().toUpperCase() === licenseInput.trim().toUpperCase());
-    if (matched) {
-      if (matched.slug !== activeTenant.slug) {
-        // Automatically switch the active view to match the license tenant
-        setActiveTenantSlug(matched.slug);
-      }
-      setAuthError('');
-      setAuthStage('login');
-    } else {
-      setAuthError('Licencia inválida. Ingrese una clave correcta (Ej: URBAN-777 o GLAM-2026).');
-    }
+  const verifyLicense = async () => {
+    const code = licenseInput.trim().toUpperCase();
+    if (!code) { setAuthError('Ingresá tu código de licencia.'); return; }
+    const lic: any = await cloud.validarLicencia(code);
+    if (!lic) { setAuthError('Licencia inválida, inactiva o vencida.'); return; }
+    const nuevo: TenantConfig = {
+      slug: code,
+      licenseKey: code,
+      adminUsername: lic.usuario_admin || 'admin',
+      adminPasswordHash: lic.pass_admin || '',
+      theme: 'sophisticated-dark',
+      storeName: lic.nombre_negocio || 'Mi Tienda',
+      storePhone: lic.telefono || '',
+      storeEmail: lic.correo_cliente || '',
+      storeAddress: '',
+    };
+    setTenants(prev => { const others = prev.filter(t => t.slug !== code); return [nuevo, ...others]; });
+    setActiveTenantSlug(code);
+    setUsernameInput(lic.usuario_admin || '');
+    setAuthError('');
+    setAuthStage('login');
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const code = activeTenant.slug;
     if (authRoleSelection === 'admin') {
-      // Validate Admin Credentials of the active tenant
-      if (usernameInput === activeTenant.adminUsername && passwordInput === activeTenant.adminPasswordHash) {
-        setAdminUser(activeTenant);
-        setColabUser(null);
-        setIsOpenAuthForm(false);
-      } else {
-        setAuthError('Usuario o contraseña administrativa incorrecta.');
-      }
+      const r = await cloud.asegurarCuentaSeguraDueno(usernameInput.trim(), passwordInput, code);
+      if (!r.ok) { setAuthError(r.msg || 'Usuario o contraseña administrativa incorrecta.'); return; }
+      const data = await cloud.cloudLoad(code);
+      if (data) applyCloudData(code, data);
+      const merged = { ...activeTenant, ...((data && data.config) ? (data.config as any) : {}), slug: code } as TenantConfig;
+      setAdminUser(merged);
+      setColabUser(null);
+      setIsOpenAuthForm(false);
+      setAuthError('');
     } else {
-      // Validate Colab Credentials
-      const matchedColab = collaborators.find(c => 
-        c.tenantId === activeTenant.slug &&
-        c.username.toLowerCase() === usernameInput.toLowerCase() &&
-        c.passwordHash === passwordInput
-      );
-
-      if (matchedColab) {
-        setColabUser(matchedColab);
-        setAdminUser(null);
-        setIsOpenAuthForm(false);
-      } else {
-        setAuthError('Usuario o contraseña de colaborador incorrecta.');
-      }
+      const r = await cloud.asegurarCuentaSeguraColab(usernameInput.trim(), passwordInput, code);
+      if (!r.ok) { setAuthError(r.msg || 'Usuario o contraseña de colaborador incorrecta.'); return; }
+      const data = await cloud.cloudLoad(code);
+      if (data) applyCloudData(code, data);
+      const colabs: any[] = (data && data.collaborators) ? (data.collaborators as any[]) : [];
+      const found = colabs.find(c => (c.username || '').toLowerCase() === usernameInput.trim().toLowerCase());
+      const colab: Collaborator = found ? { ...found, tenantId: code } : {
+        id: 'colab-' + Date.now(), tenantId: code, username: usernameInput.trim(),
+        passwordHash: passwordInput, name: usernameInput.trim(), phone: '', avatar: '',
+      };
+      setColabUser(colab);
+      setAdminUser(null);
+      setIsOpenAuthForm(false);
+      setAuthError('');
     }
   };
 
@@ -341,35 +394,6 @@ export default function App() {
     <div className={`theme-bg-page min-h-screen flex flex-col font-sans transition-colors duration-200`}>
       {/* Dynamic Style Injection */}
       <ThemeStyles theme={activeTenant.theme} fontStyle={activeTenant.fontStyle} />
-
-      {/* --- TENANT SWITCHER (Simulador DEMO para el usuario evaluador) --- */}
-      <div className="bg-slate-950 text-white p-2.5 text-xs flex flex-wrap justify-between items-center gap-3 px-6 select-none border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-            Demo PWA Multi-Inquilino
-          </span>
-          <span className="hidden sm:inline text-zinc-400">Verifica cómo cambia la estética total al cambiar de local:</span>
-        </div>
-
-        <div className="flex gap-2">
-          {tenants.map(t => (
-            <button
-              key={t.slug}
-              onClick={() => {
-                setActiveTenantSlug(t.slug);
-                setCart([]); // Clear preview cart on switch
-              }}
-              className={`px-3 py-1 rounded-md text-[11px] font-extrabold transition-all cursor-pointer ${
-                activeTenant.slug === t.slug 
-                  ? 'bg-rose-500 text-white shadow-sm ring-1 ring-white/50' 
-                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-              }`}
-            >
-              🏢 {t.storeName}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* RENDER MODAL: ADMIN ACCESS OR COLLABORATOR PORTAL DIRECTORY */}
       {adminUser && !adminPreviewMode ? (
