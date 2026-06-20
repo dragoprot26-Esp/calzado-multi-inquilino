@@ -153,6 +153,7 @@ export default function App() {
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   // Share widgets feedback
   const [copiedLink, setCopiedLink] = useState(false);
@@ -290,24 +291,26 @@ export default function App() {
   const verifyLicense = async () => {
     const code = licenseInput.trim().toUpperCase();
     if (!code) { setAuthError('Ingresá tu código de licencia.'); return; }
-    const lic: any = await cloud.validarLicencia(code);
-    if (!lic) { setAuthError('Licencia inválida, inactiva o vencida.'); return; }
-    const nuevo: TenantConfig = {
-      slug: code,
-      licenseKey: code,
-      adminUsername: lic.usuario_admin || 'admin',
-      adminPasswordHash: lic.pass_admin || '',
-      theme: 'sophisticated-dark',
-      storeName: lic.nombre_negocio || 'Mi Tienda',
-      storePhone: lic.telefono || '',
-      storeEmail: lic.correo_cliente || '',
-      storeAddress: '',
-    };
-    setTenants(prev => { const others = prev.filter(t => t.slug !== code); return [nuevo, ...others]; });
-    setActiveTenantSlug(code);
-    setUsernameInput(lic.usuario_admin || '');
-    setAuthError('');
-    setAuthStage('login');
+    setVerifying(true); setAuthError('');
+    try {
+      const lic: any = await cloud.validarLicencia(code);
+      if (!lic) { setAuthError('Licencia inválida, inactiva o vencida.'); return; }
+      const nuevo: TenantConfig = {
+        slug: code,
+        licenseKey: code,
+        adminUsername: lic.usuario_admin || 'admin',
+        adminPasswordHash: lic.pass_admin || '',
+        theme: 'sophisticated-dark',
+        storeName: lic.nombre_negocio || 'Mi Tienda',
+        storePhone: lic.telefono || '',
+        storeEmail: lic.correo_cliente || '',
+        storeAddress: '',
+      };
+      setTenants(prev => { const others = prev.filter(t => t.slug !== code); return [nuevo, ...others]; });
+      setActiveTenantSlug(code);
+      setUsernameInput(lic.usuario_admin || '');
+      setAuthStage('login');
+    } finally { setVerifying(false); }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -900,23 +903,21 @@ export default function App() {
                           type="text"
                           value={licenseInput}
                           onChange={(e) => setLicenseInput(e.target.value)}
-                          placeholder="Ej. Clave demo: URBAN-777 o GLAM-2026"
+                          placeholder="Ingresá tu código de licencia (CALZ-...)"
                           className="w-full text-sm font-mono p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-xl uppercase tracking-wider focus:ring-2 focus:ring-[var(--theme-primary)] focus:outline-hidden"
                           id="license-key-input"
                           required
                         />
-                        <div className="text-[10px] text-amber-600 font-bold flex items-center gap-1">
-                          <span>💡 Clave demo Urban: <strong>URBAN-777</strong> | Clave Glamour: <strong>GLAM-2026</strong></span>
-                        </div>
                       </div>
 
                       <button
                         type="button"
                         onClick={verifyLicense}
-                        className="w-full theme-btn-primary p-3.5 rounded-xl text-center text-xs font-bold tracking-widest uppercase cursor-pointer hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                        disabled={verifying}
+                        className="w-full theme-btn-primary p-3.5 rounded-xl text-center text-xs font-bold tracking-widest uppercase cursor-pointer hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                         id="verify-license-btn"
                       >
-                        Verificar Licencia <ArrowUpRight size={13} />
+                        {verifying ? 'Verificando…' : <>Verificar Licencia <ArrowUpRight size={13} /></>}
                       </button>
                     </div>
                   ) : (
