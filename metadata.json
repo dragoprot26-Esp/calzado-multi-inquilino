@@ -1,0 +1,8 @@
+{
+  "name": "PWA Calzado Multi-Inquilino",
+  "description": "Plataforma multi-inquilino para la venta de calzado, con catálogo público personalizado por temas, carrito de compras persistente, generación de códigos de retiro y panel administrativo completo con estadísticas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
