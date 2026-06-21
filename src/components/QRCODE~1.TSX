@@ -39,9 +39,9 @@ export default function QRCodeGenerator({ storeName, storeSlug }: QRCodeGenerato
       {/* Vector QR Code */}
       <div className="relative inline-block bg-teal-50/50 dark:bg-zinc-800/40 p-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-zinc-700">
         <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=${encodeURIComponent(rawUrl)}`}
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=20&ecc=M&qzone=2&data=${encodeURIComponent(rawUrl)}`}
           alt="QR de tu tienda"
-          className="w-48 h-48 mx-auto rounded-lg bg-white p-1"
+          className="w-48 h-48 mx-auto bg-white p-2"
         />
 
         {/* Small badge */}
@@ -126,9 +126,9 @@ export default function QRCodeGenerator({ storeName, storeSlug }: QRCodeGenerato
               {/* Huge QR Code vector */}
               <div className="bg-slate-100 p-6 rounded-3xl border-2 border-slate-200 inline-block">
                 <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=${encodeURIComponent(rawUrl)}`}
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=20&ecc=M&qzone=2&data=${encodeURIComponent(rawUrl)}`}
           alt="QR de tu tienda"
-          className="w-48 h-48 mx-auto rounded-lg bg-white p-1"
+          className="w-48 h-48 mx-auto bg-white p-2"
         />
               </div>
 
