@@ -7,7 +7,7 @@ import { ThemeStyle } from '../types';
 
 interface ThemeStylesProps {
   theme: ThemeStyle;
-  fontStyle?: 'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold';
+  fontStyle?: 'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold' | 'gothic-black' | 'cursive-script' | 'cursive-vibes' | 'retro-pacifico';
 }
 
 export default function ThemeStyles({ theme, fontStyle }: ThemeStylesProps) {
@@ -71,6 +71,48 @@ export default function ThemeStyles({ theme, fontStyle }: ThemeStylesProps) {
             font-style: normal !important;
             font-weight: 950 !important;
             letter-spacing: -0.04em !important;
+          }
+        `;
+        break;
+      case 'gothic-black':
+        fontOverrides = `
+          @import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap');
+          h1, h2, h3, h4, .theme-serif {
+            font-family: 'UnifrakturMaguntia', 'Playfair Display', serif !important;
+            font-style: normal !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.01em !important;
+          }
+        `;
+        break;
+      case 'cursive-script':
+        fontOverrides = `
+          @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&display=swap');
+          h1, h2, h3, h4, .theme-serif {
+            font-family: 'Dancing Script', cursive !important;
+            font-style: normal !important;
+            font-weight: 700 !important;
+          }
+        `;
+        break;
+      case 'cursive-vibes':
+        fontOverrides = `
+          @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+          h1, h2, h3, h4, .theme-serif {
+            font-family: 'Great Vibes', cursive !important;
+            font-style: normal !important;
+            font-weight: 400 !important;
+            letter-spacing: 0.02em !important;
+          }
+        `;
+        break;
+      case 'retro-pacifico':
+        fontOverrides = `
+          @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+          h1, h2, h3, h4, .theme-serif {
+            font-family: 'Pacifico', cursive !important;
+            font-style: normal !important;
+            font-weight: 400 !important;
           }
         `;
         break;
@@ -239,6 +281,81 @@ export default function ThemeStyles({ theme, fontStyle }: ThemeStylesProps) {
           --theme-primary-hover: #a16207;
           --theme-badge: #fef9c3;
           --theme-badge-text: #854d0e;
+        }
+      `;
+      break;
+    case 'sunset-fire':
+      styles = `
+        :root {
+          --theme-bg: #1a0f14;
+          --theme-card: #2a1620;
+          --theme-border: #3d2230;
+          --theme-text: #fff1f2;
+          --theme-text-muted: #fca5a5;
+          --theme-primary: #fb7185;
+          --theme-primary-hover: #f43f5e;
+          --theme-badge: #4c0519;
+          --theme-badge-text: #fecdd3;
+        }
+      `;
+      break;
+    case 'ocean-deep':
+      styles = `
+        :root {
+          --theme-bg: #08131f;
+          --theme-card: #0f2238;
+          --theme-border: #1e3a52;
+          --theme-text: #e0f2fe;
+          --theme-text-muted: #7dd3fc;
+          --theme-primary: #38bdf8;
+          --theme-primary-hover: #0ea5e9;
+          --theme-badge: #0c4a6e;
+          --theme-badge-text: #bae6fd;
+        }
+      `;
+      break;
+    case 'candy-pop':
+      styles = `
+        :root {
+          --theme-bg: #fdf2ff;
+          --theme-card: #ffffff;
+          --theme-border: #f5d0fe;
+          --theme-text: #581c87;
+          --theme-text-muted: #a21caf;
+          --theme-primary: #d946ef;
+          --theme-primary-hover: #c026d3;
+          --theme-badge: #fae8ff;
+          --theme-badge-text: #a21caf;
+        }
+      `;
+      break;
+    case 'lavender-mist':
+      styles = `
+        :root {
+          --theme-bg: #f5f3ff;
+          --theme-card: #ffffff;
+          --theme-border: #ede9fe;
+          --theme-text: #3b0764;
+          --theme-text-muted: #7c3aed;
+          --theme-primary: #8b5cf6;
+          --theme-primary-hover: #7c3aed;
+          --theme-badge: #ede9fe;
+          --theme-badge-text: #6d28d9;
+        }
+      `;
+      break;
+    case 'mono-noir':
+      styles = `
+        :root {
+          --theme-bg: #0a0a0a;
+          --theme-card: #161616;
+          --theme-border: #2a2a2a;
+          --theme-text: #fafafa;
+          --theme-text-muted: #a3a3a3;
+          --theme-primary: #fafafa;
+          --theme-primary-hover: #d4d4d4;
+          --theme-badge: #262626;
+          --theme-badge-text: #fafafa;
         }
       `;
       break;
