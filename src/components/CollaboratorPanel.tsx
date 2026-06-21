@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  BarChart3, Camera, Settings, FileClock, Check, LogOut, Trash, Phone, User
+  BarChart3, Camera, Settings, FileClock, Check, LogOut, Trash, Phone, User, Bell, Palette
 } from 'lucide-react';
 import { Collaborator, Order, TenantConfig } from '../types';
 
@@ -18,6 +18,24 @@ interface CollaboratorPanelProps {
   onLogout: () => void;
 }
 
+const PANEL_THEMES: { id: string; name: string; mode: 'dark' | 'light'; accent: string; bg: string }[] = [
+  { id: 'oscuro',  name: '🌑 Oscuro',  mode: 'dark',  accent: '#FF4F00', bg: '' },
+  { id: 'crema',   name: '🍦 Crema',   mode: 'light', accent: '#B8860B', bg: '#F7EFE0' },
+  { id: 'claro',   name: '⚪ Claro',   mode: 'light', accent: '#0f172a', bg: '#eef2f7' },
+  { id: 'azul',    name: '🔵 Azul',    mode: 'dark',  accent: '#3b82f6', bg: '#0b1326' },
+  { id: 'verde',   name: '🟢 Verde',   mode: 'dark',  accent: '#22c55e', bg: '#0a1611' },
+  { id: 'bordo',   name: '🍷 Bordó',   mode: 'dark',  accent: '#f43f5e', bg: '#1a0c12' },
+  { id: 'violeta', name: '🟣 Violeta', mode: 'dark',  accent: '#a78bfa', bg: '#140c20' },
+];
+const PANEL_TEXT: { id: string; name: string; color: string }[] = [
+  { id: 'auto',   name: 'Auto',       color: '' },
+  { id: 'blanco', name: 'Blanco',     color: '#ffffff' },
+  { id: 'crema',  name: 'Crema',      color: '#f4e9d2' },
+  { id: 'claro',  name: 'Gris claro', color: '#cbd5e1' },
+  { id: 'dorado', name: 'Dorado',     color: '#e9c46a' },
+  { id: 'oscuro', name: 'Oscuro',     color: '#0f172a' },
+];
+
 export default function CollaboratorPanel({
   collaborator,
   tenant,
@@ -26,7 +44,23 @@ export default function CollaboratorPanel({
   onUpdateOrderStatus,
   onLogout,
 }: CollaboratorPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'perfil' | 'pedidos'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'perfil' | 'pedidos' | 'apariencia'>('dashboard');
+  const [panelThemeId, setPanelThemeId] = useState<string>(() => { try { return localStorage.getItem('calz_admin_theme') || 'oscuro'; } catch (e) { return 'oscuro'; } });
+  const [panelTextId, setPanelTextId] = useState<string>(() => { try { return localStorage.getItem('calz_admin_text') || 'auto'; } catch (e) { return 'auto'; } });
+  const applyPanelTheme = (id: string) => {
+    const t = PANEL_THEMES.find(x => x.id === id) || PANEL_THEMES[0];
+    setPanelThemeId(t.id);
+    try { localStorage.setItem('calz_admin_theme', t.id); } catch (e) {}
+    const root = document.documentElement;
+    if (t.mode === 'dark') root.classList.add('dark'); else root.classList.remove('dark');
+    root.style.setProperty('--theme-primary', t.accent);
+  };
+  const applyPanelText = (id: string) => { setPanelTextId(id); try { localStorage.setItem('calz_admin_text', id); } catch (e) {} };
+  useEffect(() => {
+    applyPanelTheme(panelThemeId);
+    return () => { document.documentElement.style.removeProperty('--theme-primary'); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Local state for Colab Profile
   const [name, setName] = useState(collaborator.name);
@@ -63,7 +97,13 @@ export default function CollaboratorPanel({
   const pendingOrders = orders.filter(o => o.tenantId === tenant.slug && o.status === 'pendiente');
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-zinc-950 flex flex-col text-left">
+    <div id="cms-colab-root" className="min-h-screen bg-slate-100 dark:bg-zinc-950 flex flex-col text-left" style={(() => { const _t = PANEL_THEMES.find(x => x.id === panelThemeId); return _t && _t.bg ? { background: _t.bg } : undefined; })()}>
+      {(() => {
+        const _tc = PANEL_TEXT.find(x => x.id === panelTextId);
+        const _base = `#cms-colab-root input, #cms-colab-root textarea, #cms-colab-root select { color: #0f172a; } .dark #cms-colab-root input, .dark #cms-colab-root textarea, .dark #cms-colab-root select { color: #f1f5f9; }`;
+        const _ov = (_tc && _tc.color) ? `#cms-colab-root label, #cms-colab-root .text-slate-700, #cms-colab-root .text-slate-600, #cms-colab-root .text-slate-500, #cms-colab-root .text-slate-400, #cms-colab-root .text-gray-700, #cms-colab-root .text-gray-600, #cms-colab-root .text-gray-500, #cms-colab-root .text-gray-400, #cms-colab-root input, #cms-colab-root textarea, #cms-colab-root select { color: ${_tc.color} !important; }` : '';
+        return <style>{_base + _ov}</style>;
+      })()}
       {/* Collaborator Navbar */}
       <header className="bg-slate-900 border-b border-zinc-800 text-white p-5 sticky top-0 z-40 shadow-sm flex justify-between items-center px-6">
         <div className="flex items-center gap-3">
@@ -74,6 +114,18 @@ export default function CollaboratorPanel({
           </div>
         </div>
 
+        <div className="flex items-center gap-3">
+        <button
+          onClick={() => setActiveTab('pedidos')}
+          className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 border border-zinc-700 text-white transition-colors cursor-pointer"
+          title="Encargos"
+          id="colab-bell-btn"
+        >
+          <Bell size={16} />
+          {pendingOrders.length > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">{pendingOrders.length}</span>
+          )}
+        </button>
         <button
           onClick={onLogout}
           className="flex items-center gap-1.5 text-xs bg-red-600 hover:bg-red-700 font-bold px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
@@ -81,6 +133,7 @@ export default function CollaboratorPanel({
         >
           <LogOut size={13} /> Cerrar Sesión
         </button>
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto md:p-6 lg:p-8 gap-6">
@@ -94,6 +147,7 @@ export default function CollaboratorPanel({
               { id: 'dashboard', name: 'Mis Ventas Hoy', icon: <BarChart3 size={16} /> },
               { id: 'pedidos', name: 'Entregar Pedidos', icon: <FileClock size={16} /> },
               { id: 'perfil', name: 'Mi Foto / Perfil', icon: <Settings size={16} /> },
+              { id: 'apariencia', name: 'Apariencia', icon: <Palette size={16} /> },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -285,6 +339,37 @@ export default function CollaboratorPanel({
                       <p className="text-[10px] text-gray-400 px-4">Sube una foto clara desde tu PC o tu smartphone para presentarte ante los clientes de la tienda.</p>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'apariencia' && (
+              <div className="space-y-6" id="colab-apariencia">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">🎨 Apariencia del Panel</h2>
+                  <p className="text-xs text-gray-400">Elegí el color y el modo de tu panel. Es solo para vos.</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {PANEL_THEMES.map(t => (
+                    <button key={t.id} type="button" onClick={() => applyPanelTheme(t.id)}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${panelThemeId === t.id ? 'ring-2 ring-offset-2 ring-[var(--theme-primary)] border-transparent' : 'border-slate-200 dark:border-zinc-800 hover:border-slate-400'}`}>
+                      <span className="block w-7 h-7 mx-auto rounded-full mb-1.5 border border-black/10" style={{ background: t.accent }}></span>
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-gray-200">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <label className="block text-xs uppercase font-black text-slate-500 dark:text-gray-300 mb-2">Color de las letras del panel</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    {PANEL_TEXT.map(tc => (
+                      <button key={tc.id} type="button" onClick={() => applyPanelText(tc.id)}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${panelTextId === tc.id ? 'ring-2 ring-offset-2 ring-[var(--theme-primary)] border-transparent' : 'border-slate-200 dark:border-zinc-800 hover:border-slate-400'}`}>
+                        <span className="block w-6 h-6 mx-auto rounded-full mb-1.5 border border-black/20" style={{ background: tc.color || 'linear-gradient(135deg,#ffffff 50%,#111827 50%)' }}></span>
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-gray-200">{tc.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Si las etiquetas se leen poco, elegí un color que contraste.</p>
                 </div>
               </div>
             )}
