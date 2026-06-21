@@ -72,6 +72,7 @@ export interface Collaborator {
   name: string;
   phone: string;
   avatar: string; // url or bases64
+  forceLogoutAt?: number; // si > inicio de sesión del colab, lo desloguea
 }
 
 export type ThemeStyle = 'modern-dark' | 'sophisticated-dark' | 'minimal-light' | 'coral-peach' | 'emerald-garden' | 'royal-blue' | 'golden-vintage' | 'sunset-fire' | 'ocean-deep' | 'candy-pop' | 'lavender-mist' | 'mono-noir';
