@@ -38,50 +38,11 @@ export default function QRCodeGenerator({ storeName, storeSlug }: QRCodeGenerato
 
       {/* Vector QR Code */}
       <div className="relative inline-block bg-teal-50/50 dark:bg-zinc-800/40 p-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-zinc-700">
-        <svg
-          className="w-48 h-48 mx-auto text-slate-800 dark:text-gray-100"
-          viewBox="0 0 100 100"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-        >
-          {/* QR Code Anchor Boxes */}
-          <rect x="5" y="5" width="25" height="25" rx="3" strokeWidth="6" />
-          <rect x="12" y="12" width="11" height="11" fill="currentColor" />
-
-          <rect x="70" y="5" width="25" height="25" rx="3" strokeWidth="6" />
-          <rect x="77" y="12" width="11" height="11" fill="currentColor" />
-
-          <rect x="5" y="70" width="25" height="25" rx="3" strokeWidth="6" />
-          <rect x="12" y="77" width="11" height="11" fill="currentColor" />
-
-          {/* Dummy QR Noise Dots */}
-          <rect x="40" y="10" width="8" height="8" rx="1" fill="currentColor" />
-          <rect x="55" y="15" width="6" height="12" rx="1" fill="currentColor" />
-          <rect x="45" y="30" width="10" height="6" rx="1" fill="currentColor" />
-          
-          <rect x="5" y="45" width="12" height="6" rx="1" fill="currentColor" />
-          <rect x="25" y="40" width="8" height="12" rx="1" fill="currentColor" />
-
-          <rect x="40" y="45" width="20" height="8" rx="1" fill="currentColor" />
-          <rect x="70" y="40" width="10" height="10" rx="1" fill="currentColor" />
-          <rect x="85" y="45" width="8" height="15" rx="1" fill="currentColor" />
-
-          <rect x="45" y="60" width="12" height="10" rx="1" fill="currentColor" />
-          <rect x="40" y="75" width="18" height="8" rx="1" fill="currentColor" />
-          <rect x="45" y="88" width="8" height="8" rx="1" fill="currentColor" />
-
-          <rect x="70" y="70" width="8" height="8" fill="currentColor" />
-          <rect x="85" y="75" width="10" height="12" fill="currentColor" />
-
-          {/* Little boot/shoe icon inside the center of QR */}
-          <path
-            d="M45 53 Q50 51 55 49 L58 54 Q55 56 48 56 Z"
-            fill="var(--theme-primary)"
-            stroke="var(--theme-primary)"
-            strokeWidth="1"
-          />
-        </svg>
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=20&ecc=M&qzone=2&data=${encodeURIComponent(rawUrl)}`}
+          alt="QR de tu tienda"
+          className="w-48 h-48 mx-auto bg-white p-2"
+        />
 
         {/* Small badge */}
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[var(--theme-primary)] text-white text-[9px] uppercase font-black px-3 py-1 rounded-full shadow-md tracking-wider">
@@ -164,47 +125,11 @@ export default function QRCodeGenerator({ storeName, storeSlug }: QRCodeGenerato
 
               {/* Huge QR Code vector */}
               <div className="bg-slate-100 p-6 rounded-3xl border-2 border-slate-200 inline-block">
-                <svg
-                  className="w-48 h-48 mx-auto text-slate-900"
-                  viewBox="0 0 100 100"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                >
-                  <rect x="5" y="5" width="25" height="25" rx="3" strokeWidth="6" />
-                  <rect x="12" y="12" width="11" height="11" fill="currentColor" />
-
-                  <rect x="70" y="5" width="25" height="25" rx="3" strokeWidth="6" />
-                  <rect x="77" y="12" width="11" height="11" fill="currentColor" />
-
-                  <rect x="5" y="70" width="25" height="25" rx="3" strokeWidth="6" />
-                  <rect x="12" y="77" width="11" height="11" fill="currentColor" />
-
-                  <rect x="40" y="10" width="8" height="8" rx="1" fill="currentColor" />
-                  <rect x="55" y="15" width="6" height="12" rx="1" fill="currentColor" />
-                  <rect x="45" y="30" width="10" height="6" rx="1" fill="currentColor" />
-                  
-                  <rect x="5" y="45" width="12" height="6" rx="1" fill="currentColor" />
-                  <rect x="25" y="40" width="8" height="12" rx="1" fill="currentColor" />
-
-                  <rect x="40" y="45" width="20" height="8" rx="1" fill="currentColor" />
-                  <rect x="70" y="40" width="10" height="10" rx="1" fill="currentColor" />
-                  <rect x="85" y="45" width="8" height="15" rx="1" fill="currentColor" />
-
-                  <rect x="45" y="60" width="12" height="10" rx="1" fill="currentColor" />
-                  <rect x="40" y="75" width="18" height="8" rx="1" fill="currentColor" />
-                  <rect x="45" y="88" width="8" height="8" rx="1" fill="currentColor" />
-
-                  <rect x="70" y="70" width="8" height="8" fill="currentColor" />
-                  <rect x="85" y="75" width="10" height="12" fill="currentColor" />
-
-                  <path
-                    d="M45 53 Q50 51 55 49 L58 54 Q55 56 48 56 Z"
-                    fill="#f43f5e"
-                    stroke="#f43f5e"
-                    strokeWidth="1.2"
-                  />
-                </svg>
+                <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=20&ecc=M&qzone=2&data=${encodeURIComponent(rawUrl)}`}
+          alt="QR de tu tienda"
+          className="w-48 h-48 mx-auto bg-white p-2"
+        />
               </div>
 
               <div className="space-y-1">
