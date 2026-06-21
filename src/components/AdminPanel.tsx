@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, Palette, Settings, Footprints, Tag, FileClock, Users, 
-  Plus, Trash, Check, X, LogOut, ArrowRight, UserPlus, FileEdit, HelpCircle, Eye, RefreshCw,
+  Plus, Trash, Check, X, LogOut, ArrowRight, UserPlus, FileEdit, HelpCircle, Eye, RefreshCw, Bell,
   Download, Printer
 } from 'lucide-react';
 import { 
@@ -425,6 +425,19 @@ export default function AdminPanel({
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setActiveTab('encargos')}
+            className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white transition-colors cursor-pointer"
+            title="Encargos"
+            id="admin-bell-btn"
+          >
+            <Bell size={16} />
+            {orders.filter(o => o.tenantId === tenant.slug && o.status === 'pendiente').length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">
+                {orders.filter(o => o.tenantId === tenant.slug && o.status === 'pendiente').length}
+              </span>
+            )}
+          </button>
           <button
             onClick={onPreviewStore}
             className="hidden sm:flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 font-bold px-3 py-2 rounded-lg transition-colors border border-slate-700 cursor-pointer text-white"
