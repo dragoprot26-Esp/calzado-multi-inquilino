@@ -208,6 +208,17 @@ export default function App() {
     return () => { root.classList.remove('dark'); };
   }, [adminUser, adminPreviewMode, isOpenAuthForm]);
 
+  // --- El modal de acceso SIEMPRE arranca pidiendo la licencia (PASO 1) ---
+  useEffect(() => {
+    if (isOpenAuthForm) {
+      setAuthStage('license');
+      setLicenseInput('');
+      setUsernameInput('');
+      setPasswordInput('');
+      setAuthError('');
+    }
+  }, [isOpenAuthForm]);
+
   // Filter Catalog
   const activeProducts = products.filter(p => p.tenantId === activeTenant.slug);
   const activePromos = promotions.filter(p => p.tenantId === activeTenant.slug);
