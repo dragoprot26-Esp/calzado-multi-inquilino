@@ -135,6 +135,7 @@ export default function App() {
 
   // Cart operations
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<{ [productId: string]: string }>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -536,16 +537,16 @@ export default function App() {
           </nav>
 
           {/* EYE-CATCHING BRAND HERO HERO */}
-          <header className="relative py-12 px-6 overflow-hidden bg-slate-50 dark:bg-zinc-900/40 border-b theme-border-main text-center">
+          <header className="relative py-12 px-6 overflow-hidden bg-slate-50 dark:bg-zinc-900/40 border-b theme-border-main text-center" style={activeTenant.coverImage ? { backgroundImage: `linear-gradient(rgba(8,10,20,0.6), rgba(8,10,20,0.74)), url(${activeTenant.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
             <div className="max-w-3xl mx-auto space-y-4">
               <div className="inline-flex items-center gap-1 bg-rose-500/10 text-[var(--theme-primary)] text-[10px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full">
                 <Sparkles size={11} /> ¡Últimas Novedades y Ofertas!
               </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight theme-text-main max-w-2xl mx-auto leading-tight">
+              <h1 className={`text-3xl sm:text-5xl font-black tracking-tight max-w-2xl mx-auto leading-tight ${activeTenant.coverImage ? 'text-white' : 'theme-text-main'}`}>
                 Eleva tu pisada al siguiente nivel de confort
               </h1>
-              <p className="text-xs sm:text-sm theme-text-secondary max-w-lg mx-auto">
-                Explora el catálogo oficial de <strong className="theme-text-main">{activeTenant.storeName}</strong>. Encarga online en simples clics y retira de inmediato por nuestro local comercial.
+              <p className={`text-xs sm:text-sm max-w-lg mx-auto ${activeTenant.coverImage ? 'text-gray-200' : 'theme-text-secondary'}`}>
+                Explora el catálogo oficial de <strong className={activeTenant.coverImage ? 'text-white' : 'theme-text-main'}>{activeTenant.storeName}</strong>. Encarga online en simples clics y retira de inmediato por nuestro local comercial.
               </p>
             </div>
 
@@ -598,7 +599,8 @@ export default function App() {
                           src={promo.image}
                           alt={promo.name}
                           referrerPolicy="no-referrer"
-                          className="w-full h-full object-contain hover:scale-110 transition-transform duration-300"
+                          onClick={() => setLightboxImg(promo.image)}
+                          className="w-full h-full object-contain hover:scale-110 transition-transform duration-300 cursor-zoom-in"
                         />
                       </div>
 
@@ -676,7 +678,7 @@ export default function App() {
                 {activeProducts.filter(p => p.isNovedad).map(product => (
                   <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border theme-border-main overflow-hidden shadow-xs flex flex-col">
                     <div className="aspect-square bg-slate-50 dark:bg-zinc-800 overflow-hidden">
-                      <img src={product.image} referrerPolicy="no-referrer" alt={product.name} className="w-full h-full object-cover" />
+                      <img src={product.image} referrerPolicy="no-referrer" alt={product.name} onClick={() => setLightboxImg(product.image)} className="w-full h-full object-cover cursor-zoom-in" />
                     </div>
                     <div className="p-4 flex flex-col gap-2 flex-1">
                       <h3 className="font-bold text-sm theme-text-main">{product.name}</h3>
@@ -732,7 +734,8 @@ export default function App() {
                             src={product.image}
                             alt={product.name}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            onClick={() => setLightboxImg(product.image)}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 cursor-zoom-in"
                           />
                         </div>
 
@@ -906,6 +909,14 @@ export default function App() {
             onRemoveItem={handleRemoveFromCart}
             onPlaceOrder={handlePlaceOrder}
           />
+
+          {/* --- LIGHTBOX: tocar una foto para agrandarla --- */}
+          {lightboxImg && (
+            <div onClick={() => setLightboxImg(null)} className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out">
+              <img src={lightboxImg} alt="" referrerPolicy="no-referrer" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
+              <button onClick={() => setLightboxImg(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white text-xl flex items-center justify-center">✕</button>
+            </div>
+          )}
 
           {/* --- VERIFICACION LOGIN LICENSE DRAWER MODAL --- */}
           <AnimatePresence>
