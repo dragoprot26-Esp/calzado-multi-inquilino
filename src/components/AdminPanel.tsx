@@ -134,6 +134,7 @@ export default function AdminPanel({
 
   // Local Colab States
   const [newColabUser, setNewColabUser] = useState('');
+  const [editingColabId, setEditingColabId] = useState<string | null>(null);
   const [newColabPass, setNewColabPass] = useState('');
   const [newColabName, setNewColabName] = useState('');
   const [newColabPhone, setNewColabPhone] = useState('');
@@ -310,8 +311,11 @@ export default function AdminPanel({
     e.preventDefault();
     if (!newColabUser.trim() || !newColabPass.trim()) return;
 
+    const wasEditing = !!editingColabId;
+    const colabId = editingColabId || `colab-${Date.now()}`;
+    if (editingColabId) onDeleteCollaborator(editingColabId);
     onAddCollaborator({
-      id: `colab-${Date.now()}`,
+      id: colabId,
       tenantId: tenant.slug,
       username: newColabUser,
       passwordHash: newColabPass,
@@ -325,7 +329,25 @@ export default function AdminPanel({
     setNewColabName('');
     setNewColabPhone('');
     setNewColabAvatar('');
-    alert('¡Colaborador asignado con éxito! Ahora puede iniciar sesión con su cuenta.');
+    setEditingColabId(null);
+    alert(wasEditing ? '¡Colaborador actualizado!' : '¡Colaborador asignado con éxito! Ahora puede iniciar sesión con su cuenta.');
+  };
+
+  const startEditColab = (c: Collaborator) => {
+    setEditingColabId(c.id);
+    setNewColabUser(c.username);
+    setNewColabPass(c.passwordHash);
+    setNewColabName(c.name);
+    setNewColabPhone(c.phone);
+    setNewColabAvatar(c.avatar);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cerrarSesionColab = (c: Collaborator) => {
+    if (!confirm(`¿Cerrar la sesión de ${c.name} en todos sus dispositivos? (por si perdió el celular). Va a poder volver a entrar normalmente.`)) return;
+    onDeleteCollaborator(c.id);
+    onAddCollaborator({ ...c, forceLogoutAt: Date.now() });
+    alert('Listo. Su sesión se va a cerrar en unos segundos en cualquier dispositivo abierto.');
   };
 
   // Helper calculation for dashboard reporting
@@ -1765,7 +1787,7 @@ export default function AdminPanel({
                       className="w-full bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-lg font-bold text-sm flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-98"
                       id="save-colab-submit-btn"
                     >
-                      <UserPlus size={16} /> Registrar Colaborador
+                      <UserPlus size={16} /> {editingColabId ? 'Guardar Cambios' : 'Registrar Colaborador'}
                     </button>
                   </form>
 
@@ -1794,6 +1816,23 @@ export default function AdminPanel({
                                 </div>
                               </div>
 
+                              <div className="flex gap-2 shrink-0">
+                              <button
+                                onClick={() => startEditColab(c)}
+                                className="px-2.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-gray-400 hover:text-amber-600 rounded-lg transition-colors border text-sm"
+                                title="Editar"
+                                id={`edit-colab-btn-${c.id}`}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => cerrarSesionColab(c)}
+                                className="px-2.5 py-2 hover:bg-sky-50 dark:hover:bg-sky-950/30 text-gray-400 hover:text-sky-600 rounded-lg transition-colors border"
+                                title="Cerrar sesión (por pérdida de celular)"
+                                id={`logout-colab-btn-${c.id}`}
+                              >
+                                <LogOut size={15} />
+                              </button>
                               <button
                                 onClick={() => {
                                   if (confirm(`¿Quieres eliminar la cuenta del colaborador ${c.name}?`)) {
@@ -1805,6 +1844,7 @@ export default function AdminPanel({
                               >
                                 <Trash size={15} />
                               </button>
+                              </div>
                             </div>
                           );
                         })}
