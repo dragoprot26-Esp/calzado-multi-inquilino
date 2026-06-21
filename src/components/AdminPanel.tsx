@@ -405,8 +405,9 @@ export default function AdminPanel({
     <div id="cms-admin-root" className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-stretch text-left" style={(() => { const _t = ADMIN_THEMES.find(x => x.id === adminThemeId); return _t && _t.bg ? { background: _t.bg } : undefined; })()}>
       {(() => {
         const _tc = ADMIN_TEXT.find(x => x.id === adminTextId);
-        if (!_tc || !_tc.color) return null;
-        return <style>{`#cms-admin-root label, #cms-admin-root .text-slate-700, #cms-admin-root .text-slate-600, #cms-admin-root .text-slate-500, #cms-admin-root .text-slate-400, #cms-admin-root .text-gray-700, #cms-admin-root .text-gray-600, #cms-admin-root .text-gray-500, #cms-admin-root .text-gray-400 { color: ${_tc.color} !important; }`}</style>;
+        const _base = `#cms-admin-root input, #cms-admin-root textarea, #cms-admin-root select { color: #0f172a; } .dark #cms-admin-root input, .dark #cms-admin-root textarea, .dark #cms-admin-root select { color: #f1f5f9; }`;
+        const _ov = (_tc && _tc.color) ? `#cms-admin-root label, #cms-admin-root .text-slate-700, #cms-admin-root .text-slate-600, #cms-admin-root .text-slate-500, #cms-admin-root .text-slate-400, #cms-admin-root .text-gray-700, #cms-admin-root .text-gray-600, #cms-admin-root .text-gray-500, #cms-admin-root .text-gray-400, #cms-admin-root input, #cms-admin-root textarea, #cms-admin-root select { color: ${_tc.color} !important; }` : '';
+        return <style>{_base + _ov}</style>;
       })()}
       {/* Top Banner admin navbar */}
       <header className="bg-slate-900 border-b border-slate-800 text-white p-5 sticky top-0 z-40 shadow-sm flex justify-between items-center px-6 lg:px-10">
