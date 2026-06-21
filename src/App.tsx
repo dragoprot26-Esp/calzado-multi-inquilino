@@ -201,6 +201,26 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminUser, colabUser, tenants, products, promotions, orders, collaborators]);
 
+  // --- NUBE: sincronizar encargos cada 20s (campanita / pedidos en vivo) ---
+  useEffect(() => {
+    const code = adminUser?.slug || (colabUser as any)?.tenantId;
+    if (!code) return;
+    const iv = setInterval(async () => {
+      const data = await cloud.cloudLoad(code);
+      if (data && data.orders) {
+        setOrders(prev => {
+          const others = prev.filter(o => o.tenantId !== code);
+          const mine = (data.orders as any[]).map((o: any) => ({ ...o, tenantId: code }));
+          const prevMine = prev.filter(o => o.tenantId === code);
+          if (JSON.stringify(prevMine) === JSON.stringify(mine)) return prev;
+          return [...mine, ...others];
+        });
+      }
+    }, 20000);
+    return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminUser, colabUser]);
+
   // --- Modo oscuro SOLO en el panel admin (la tienda pública no se toca) ---
   useEffect(() => {
     const root = document.documentElement;
