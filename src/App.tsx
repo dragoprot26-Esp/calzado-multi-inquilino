@@ -142,6 +142,7 @@ export default function App() {
   // Authorization state
   const [adminUser, setAdminUser] = useState<TenantConfig | null>(null);
   const [colabUser, setColabUser] = useState<Collaborator | null>(null);
+  const [colabSessionStart, setColabSessionStart] = useState<number>(0);
   const [adminPreviewMode, setAdminPreviewMode] = useState(false);
   
   // Login flow modal state
@@ -216,10 +217,19 @@ export default function App() {
           return [...mine, ...others];
         });
       }
+      // El admin pudo "cerrar sesión" de este colaborador (pérdida de celular)
+      if (colabUser && data && data.collaborators) {
+        const me = (data.collaborators as any[]).find((c: any) => c.id === colabUser.id);
+        if (me && me.forceLogoutAt && me.forceLogoutAt > colabSessionStart) {
+          cloud.signOut();
+          setColabUser(null);
+          alert('Tu sesión fue cerrada por el administrador. Iniciá sesión de nuevo.');
+        }
+      }
     }, 20000);
     return () => clearInterval(iv);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminUser, colabUser]);
+  }, [adminUser, colabUser, colabSessionStart]);
 
   // --- Modo oscuro SOLO en el panel admin (la tienda pública no se toca) ---
   useEffect(() => {
@@ -383,6 +393,7 @@ export default function App() {
         passwordHash: passwordInput, name: usernameInput.trim(), phone: '', avatar: '',
       };
       setColabUser(colab);
+      setColabSessionStart(Date.now());
       setAdminUser(null);
       setIsOpenAuthForm(false);
       setAuthError('');
