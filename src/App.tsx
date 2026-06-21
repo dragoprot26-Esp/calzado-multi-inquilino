@@ -203,10 +203,10 @@ export default function App() {
   // --- Modo oscuro SOLO en el panel admin (la tienda pública no se toca) ---
   useEffect(() => {
     const root = document.documentElement;
-    if (adminUser && !adminPreviewMode) root.classList.add('dark');
+    if ((adminUser && !adminPreviewMode) || isOpenAuthForm) root.classList.add('dark');
     else root.classList.remove('dark');
     return () => { root.classList.remove('dark'); };
-  }, [adminUser, adminPreviewMode]);
+  }, [adminUser, adminPreviewMode, isOpenAuthForm]);
 
   // Filter Catalog
   const activeProducts = products.filter(p => p.tenantId === activeTenant.slug);
@@ -428,8 +428,14 @@ export default function App() {
           onAddCollaborator={handleAddCollaborator}
           onDeleteCollaborator={handleDeleteCollaborator}
           onLogout={() => {
+            cloud.signOut();
             setAdminUser(null);
+            setColabUser(null);
             setAdminPreviewMode(false);
+            setAuthStage('license');
+            setLicenseInput('');
+            setUsernameInput('');
+            setPasswordInput('');
           }}
           onPreviewStore={() => {
             setAdminPreviewMode(true);
@@ -644,6 +650,39 @@ export default function App() {
             )}
 
             {/* -- PUBLIC GENERAL PRODUCTS CATALOG LIST -- */}
+            {activeProducts.filter(p => p.isNovedad).length > 0 && (
+            <section className="space-y-6">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-rose-50 text-[var(--theme-primary)] block">
+                  <Sparkles size={17} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">✨ Últimas Novedades</h2>
+                  <p className="text-xs text-gray-400">Lo último que llegó a la tienda.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {activeProducts.filter(p => p.isNovedad).map(product => (
+                  <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border theme-border-main overflow-hidden shadow-xs flex flex-col">
+                    <div className="aspect-square bg-slate-50 dark:bg-zinc-800 overflow-hidden">
+                      <img src={product.image} referrerPolicy="no-referrer" alt={product.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-4 flex flex-col gap-2 flex-1">
+                      <h3 className="font-bold text-sm theme-text-main">{product.name}</h3>
+                      <div className="text-[var(--theme-primary)] font-black">${product.price.toLocaleString('es-AR')} ARS</div>
+                      <div className="flex flex-wrap gap-1">
+                        {product.sizes.map(size => (
+                          <button key={size} onClick={() => setSelectedSizes(prev => ({ ...prev, [product.id]: size }))} className={`px-2 py-1 text-[11px] font-bold rounded-md ${selectedSizes[product.id] === size ? 'theme-btn-primary' : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300'}`}>{size}</button>
+                        ))}
+                      </div>
+                      <button onClick={() => handleAddToCart(product, false)} className="mt-auto w-full py-2 theme-btn-primary rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer">Agregar al Canasto</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+            )}
+
             <section className="space-y-6">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-indigo-50 text-[var(--theme-primary)] block">
@@ -661,7 +700,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="products-grid">
-                  {activeProducts.map(product => {
+                  {activeProducts.filter(p => !p.isNovedad).map(product => {
                     const isSelected = selectedSizes[product.id];
                     return (
                       <div
