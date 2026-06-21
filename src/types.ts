@@ -74,7 +74,7 @@ export interface Collaborator {
   avatar: string; // url or bases64
 }
 
-export type ThemeStyle = 'modern-dark' | 'sophisticated-dark' | 'minimal-light' | 'coral-peach' | 'emerald-garden' | 'royal-blue' | 'golden-vintage';
+export type ThemeStyle = 'modern-dark' | 'sophisticated-dark' | 'minimal-light' | 'coral-peach' | 'emerald-garden' | 'royal-blue' | 'golden-vintage' | 'sunset-fire' | 'ocean-deep' | 'candy-pop' | 'lavender-mist' | 'mono-noir';
 
 export interface TenantConfig {
   slug: string; // e.g., 'calzados-premium'
@@ -88,6 +88,7 @@ export interface TenantConfig {
   storeAddress: string;
   storeCoordinates?: string; // Maps location string
   logo?: string; // logo del local (url o base64)
+  coverImage?: string; // foto de portada/local (fondo del hero)
   referralId?: string;
-  fontStyle?: 'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold';
+  fontStyle?: 'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold' | 'gothic-black' | 'cursive-script' | 'cursive-vibes' | 'retro-pacifico';
 }
