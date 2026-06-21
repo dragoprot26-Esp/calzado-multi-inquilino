@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, Palette, Settings, Footprints, Tag, FileClock, Users, 
   Plus, Trash, Check, X, LogOut, ArrowRight, UserPlus, FileEdit, HelpCircle, Eye, RefreshCw,
@@ -31,6 +31,16 @@ interface AdminPanelProps {
   onLogout: () => void;
   onPreviewStore: () => void;
 }
+
+const ADMIN_THEMES: { id: string; name: string; mode: 'dark' | 'light'; accent: string; bg: string }[] = [
+  { id: 'oscuro',  name: '🌑 Oscuro',  mode: 'dark',  accent: '#FF4F00', bg: '' },
+  { id: 'crema',   name: '🍦 Crema',   mode: 'light', accent: '#B8860B', bg: '#F7EFE0' },
+  { id: 'claro',   name: '⚪ Claro',   mode: 'light', accent: '#0f172a', bg: '#eef2f7' },
+  { id: 'azul',    name: '🔵 Azul',    mode: 'dark',  accent: '#3b82f6', bg: '#0b1326' },
+  { id: 'verde',   name: '🟢 Verde',   mode: 'dark',  accent: '#22c55e', bg: '#0a1611' },
+  { id: 'bordo',   name: '🍷 Bordó',   mode: 'dark',  accent: '#f43f5e', bg: '#1a0c12' },
+  { id: 'violeta', name: '🟣 Violeta', mode: 'dark',  accent: '#a78bfa', bg: '#140c20' },
+];
 
 export default function AdminPanel({
   tenant,
@@ -78,6 +88,22 @@ export default function AdminPanel({
   const [novPrice, setNovPrice] = useState('55000');
   const [novImage, setNovImage] = useState('');
   const [editingNovId, setEditingNovId] = useState<string | null>(null);
+  const [adminThemeId, setAdminThemeId] = useState<string>(() => {
+    try { return localStorage.getItem('calz_admin_theme') || 'oscuro'; } catch (e) { return 'oscuro'; }
+  });
+  const applyAdminTheme = (id: string) => {
+    const t = ADMIN_THEMES.find(x => x.id === id) || ADMIN_THEMES[0];
+    setAdminThemeId(t.id);
+    try { localStorage.setItem('calz_admin_theme', t.id); } catch (e) {}
+    const root = document.documentElement;
+    if (t.mode === 'dark') root.classList.add('dark'); else root.classList.remove('dark');
+    root.style.setProperty('--theme-primary', t.accent);
+  };
+  useEffect(() => {
+    applyAdminTheme(adminThemeId);
+    return () => { document.documentElement.style.removeProperty('--theme-primary'); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Local Promo States
   const [newPromoName, setNewPromoName] = useState('');
@@ -87,6 +113,7 @@ export default function AdminPanel({
   const [newPromoPrice, setNewPromoPrice] = useState('49900');
   const [newPromoBadge, setNewPromoBadge] = useState('HOT SALE');
   const [newPromoImage, setNewPromoImage] = useState('');
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
 
   // Local Colab States
   const [newColabUser, setNewColabUser] = useState('');
@@ -222,8 +249,11 @@ export default function AdminPanel({
     e.preventDefault();
     if (!newPromoName.trim()) return;
 
+    const wasEditingPromo = !!editingPromoId;
+    const promoId = editingPromoId || `promo-${Date.now()}`;
+    if (editingPromoId) onDeletePromotion(editingPromoId);
     onAddPromotion({
-      id: `promo-${Date.now()}`,
+      id: promoId,
       tenantId: tenant.slug,
       name: newPromoName,
       description: newPromoDesc,
@@ -242,7 +272,20 @@ export default function AdminPanel({
     setNewPromoPrice('49900');
     setNewPromoBadge('HOT SALE');
     setNewPromoImage('');
-    alert('¡Campaña promocional publicada con éxito!');
+    setEditingPromoId(null);
+    alert(wasEditingPromo ? '¡Promoción actualizada!' : '¡Campaña promocional publicada con éxito!');
+  };
+
+  const startEditPromo = (p: Promotion) => {
+    setEditingPromoId(p.id);
+    setNewPromoName(p.name);
+    setNewPromoDesc(p.description);
+    setNewPromoSizes(p.sizes.join(', '));
+    setNewPromoOrigPrice(String(p.originalPrice));
+    setNewPromoPrice(String(p.offerPrice));
+    setNewPromoBadge(p.badgeText || '');
+    setNewPromoImage(p.image || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAddColabSubmit = (e: React.FormEvent) => {
@@ -341,7 +384,7 @@ export default function AdminPanel({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-stretch text-left">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-stretch text-left" style={(() => { const _t = ADMIN_THEMES.find(x => x.id === adminThemeId); return _t && _t.bg ? { background: _t.bg } : undefined; })()}>
       {/* Top Banner admin navbar */}
       <header className="bg-slate-900 border-b border-slate-800 text-white p-5 sticky top-0 z-40 shadow-sm flex justify-between items-center px-6 lg:px-10">
         <div className="flex items-center gap-3">
@@ -852,6 +895,19 @@ export default function AdminPanel({
             {/* 3. CONFIGURACION TAB */}
             {activeTab === 'config' && (
               <div className="space-y-6" id="view-config">
+                <div className="border-b pb-4 theme-border-main">
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white">🎨 Apariencia del Panel</h2>
+                  <p className="text-xs text-gray-500">Elegí el color y el modo de tu panel. Es solo para vos; no cambia tu tienda pública.</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                  {ADMIN_THEMES.map(t => (
+                    <button key={t.id} type="button" onClick={() => applyAdminTheme(t.id)}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${adminThemeId === t.id ? 'ring-2 ring-offset-2 ring-[var(--theme-primary)] border-transparent' : 'border-slate-200 dark:border-zinc-800 hover:border-slate-400'}`}>
+                      <span className="block w-7 h-7 mx-auto rounded-full mb-1.5 border border-black/10" style={{ background: t.accent }}></span>
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-gray-200">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
                 <div className="border-b pb-4 theme-border-main">
                   <h2 className="text-2xl font-black text-slate-800 dark:text-white">Datos del Local e Contacto</h2>
                   <p className="text-xs text-gray-500">Esta información se despliega visiblemente al pie de tu tienda pública para visitas y consultas.</p>
@@ -1379,7 +1435,7 @@ export default function AdminPanel({
                       className="w-full bg-red-500 hover:bg-red-600 text-white p-3 rounded-lg font-bold text-sm flex items-center justify-center gap-1 cursor-pointer shadow-xs"
                       id="publish-promo-submit-btn"
                     >
-                      <Tag size={16} /> Publicar Oferta Promocional
+                      <Tag size={16} /> {editingPromoId ? 'Guardar Cambios' : 'Publicar Oferta Promocional'}
                     </button>
                   </form>
 
@@ -1411,6 +1467,15 @@ export default function AdminPanel({
                               </div>
                             </div>
 
+                            <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => startEditPromo(p)}
+                              className="px-2.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-gray-400 hover:text-amber-600 rounded-lg transition-colors border text-sm"
+                              id={`edit-promo-btn-${p.id}`}
+                              title="Editar"
+                            >
+                              ✏️
+                            </button>
                             <button
                               onClick={() => {
                                 if (confirm('¿Quieres eliminar esta promoción?')) {
@@ -1422,6 +1487,7 @@ export default function AdminPanel({
                             >
                               <Trash size={15} />
                             </button>
+                            </div>
                           </div>
                         ))}
                       </div>
