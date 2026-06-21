@@ -68,7 +68,7 @@ export default function AdminPanel({
   const [storeAddress, setStoreAddress] = useState(tenant.storeAddress);
   const [storeCoordinates, setStoreCoordinates] = useState(tenant.storeCoordinates || '');
   const [theme, setTheme] = useState<ThemeStyle>(tenant.theme);
-  const [fontStyle, setFontStyle] = useState<'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold'>(tenant.fontStyle || 'sans-ui');
+  const [fontStyle, setFontStyle] = useState<'sans-ui' | 'serif-elegant' | 'grotesk-tech' | 'cinzel-luxury' | 'unbounded-bold' | 'gothic-black' | 'cursive-script' | 'cursive-vibes' | 'retro-pacifico'>(tenant.fontStyle || 'sans-ui');
   
   // Local Product States
   const [newProdName, setNewProdName] = useState('');
@@ -82,6 +82,7 @@ export default function AdminPanel({
   const [tempValue, setTempValue] = useState('');
   const [editingProdId, setEditingProdId] = useState<string | null>(null);
   const [storeLogo, setStoreLogo] = useState(tenant.logo || '');
+  const [coverImage, setCoverImage] = useState(tenant.coverImage || '');
   const [novName, setNovName] = useState('');
   const [novSizes, setNovSizes] = useState('38, 39, 40');
   const [novDesc, setNovDesc] = useState('');
@@ -147,6 +148,7 @@ export default function AdminPanel({
       storeAddress,
       storeCoordinates,
       logo: storeLogo,
+      coverImage,
     });
     alert('¡Configuración de datos personales guardada con éxito!');
   };
@@ -802,7 +804,12 @@ export default function AdminPanel({
                     { style: 'coral-peach', name: 'Peach Garden', desc: 'Colores cálidos ideales para una estética veraniega y alegre.', primary: 'bg-orange-50/55', accent: 'bg-orange-500' },
                     { style: 'emerald-garden', name: 'Bosque Esmeralda', desc: 'Tonos naturales y relajantes que transmiten frescura.', primary: 'bg-emerald-50/50', accent: 'bg-emerald-500' },
                     { style: 'royal-blue', name: 'Club Universitario', desc: 'Acento azul atlético tradicional, ideal para deportes.', primary: 'bg-blue-50/50', accent: 'bg-blue-500' },
-                    { style: 'golden-vintage', name: 'Dorado Vintage', desc: 'Atractivo clásico marrón y oro, ideal para calzado de cuero.', primary: 'bg-[#fffdf6]', accent: 'bg-amber-600' }
+                    { style: 'golden-vintage', name: 'Dorado Vintage', desc: 'Atractivo clásico marrón y oro, ideal para calzado de cuero.', primary: 'bg-[#fffdf6]', accent: 'bg-amber-600' },
+                    { style: 'sunset-fire', name: 'Atardecer Fuego', desc: 'Oscuro cálido con destellos rosa-coral, intenso y vibrante.', primary: 'bg-[#1a0f14]', accent: 'bg-rose-400' },
+                    { style: 'ocean-deep', name: 'Océano Profundo', desc: 'Azul profundo con acentos celestes, fresco y moderno.', primary: 'bg-[#08131f]', accent: 'bg-sky-400' },
+                    { style: 'candy-pop', name: 'Candy Pop', desc: 'Claro y divertido en fucsia y violeta, juvenil y alegre.', primary: 'bg-[#fdf2ff]', accent: 'bg-fuchsia-500' },
+                    { style: 'lavender-mist', name: 'Lavanda Suave', desc: 'Claro en violetas suaves, delicado y prolijo.', primary: 'bg-[#f5f3ff]', accent: 'bg-violet-500' },
+                    { style: 'mono-noir', name: 'Blanco y Negro', desc: 'Puro blanco y negro, minimalista y de alto impacto.', primary: 'bg-black', accent: 'bg-white' }
                   ].map(t => (
                     <button
                       key={t.style}
@@ -852,7 +859,11 @@ export default function AdminPanel({
                       { id: 'serif-elegant', name: 'Playfair Display', font: 'font-serif italic font-bold', desc: 'Editorial elegante, clásica.' },
                       { id: 'grotesk-tech', name: 'Space Grotesk', font: 'font-mono font-bold tracking-tight', desc: 'Moderna, técnica y futurista.' },
                       { id: 'cinzel-luxury', name: 'Cinzel Luxury', font: 'uppercase font-serif tracking-widest font-black', desc: 'Premium, exclusivo, imperial.' },
-                      { id: 'unbounded-bold', name: 'Unbounded Bold', font: 'font-sans font-black tracking-tighter', desc: 'Futurista urbano para calzado deportivo.' }
+                      { id: 'unbounded-bold', name: 'Unbounded Bold', font: 'font-sans font-black tracking-tighter', desc: 'Futurista urbano para calzado deportivo.' },
+                      { id: 'gothic-black', name: 'Gótica Medieval', font: 'font-serif font-bold', desc: 'Estilo gótico / blackletter, look antiguo y rebelde.' },
+                      { id: 'cursive-script', name: 'Cursiva Elegante', font: 'italic font-bold', desc: 'Manuscrita fluida, romántica y prolija.' },
+                      { id: 'cursive-vibes', name: 'Caligrafía Fina', font: 'italic', desc: 'Caligrafía fina y sofisticada, tipo invitación.' },
+                      { id: 'retro-pacifico', name: 'Retro Pacifico', font: 'italic font-bold', desc: 'Cursiva divertida, estilo retro/surf.' }
                     ].map((f) => (
                       <button
                         key={f.id}
@@ -987,6 +998,18 @@ export default function AdminPanel({
                         {storeLogo && <button type="button" onClick={() => setStoreLogo('')} className="text-xs text-rose-500 font-bold px-2 cursor-pointer">Quitar</button>}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-1">Si no subís, se usa la inicial del nombre del local.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase font-black text-slate-500 mb-1">Foto de portada / local (fondo del inicio)</label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-12 rounded-lg bg-slate-100 dark:bg-zinc-800 border overflow-hidden shrink-0 flex items-center justify-center">
+                          {coverImage ? <img src={coverImage} alt="portada" className="w-full h-full object-cover" /> : <span className="text-[10px] text-slate-400">Sin foto</span>}
+                        </div>
+                        <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files[0]) handleImageUpload(e.target.files[0], setCoverImage); }} className="flex-1 text-xs p-2.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-gray-600 dark:text-gray-300" />
+                        {coverImage && <button type="button" onClick={() => setCoverImage('')} className="text-xs text-rose-500 font-bold px-2 cursor-pointer">Quitar</button>}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">Aparece de fondo en el inicio de tu tienda, con un velo oscuro para que se lea el texto.</p>
                     </div>
 
                     <button
