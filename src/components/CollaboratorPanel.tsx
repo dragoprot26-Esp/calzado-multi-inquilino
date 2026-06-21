@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  BarChart3, Camera, Settings, FileClock, Check, LogOut, Trash, Phone, User, Bell, Palette
+  BarChart3, Camera, Settings, FileClock, Check, LogOut, Trash, Phone, User, Bell, Palette, Download, Printer
 } from 'lucide-react';
 import { Collaborator, Order, TenantConfig } from '../types';
 
@@ -47,6 +47,7 @@ export default function CollaboratorPanel({
   const [activeTab, setActiveTab] = useState<'dashboard' | 'perfil' | 'pedidos' | 'apariencia'>('dashboard');
   const [panelThemeId, setPanelThemeId] = useState<string>(() => { try { return localStorage.getItem('calz_admin_theme') || 'oscuro'; } catch (e) { return 'oscuro'; } });
   const [panelTextId, setPanelTextId] = useState<string>(() => { try { return localStorage.getItem('calz_admin_text') || 'auto'; } catch (e) { return 'auto'; } });
+  const [dashTimeframe, setDashTimeframe] = useState<'diario' | 'semanal' | 'mensual'>('diario');
   const applyPanelTheme = (id: string) => {
     const t = PANEL_THEMES.find(x => x.id === id) || PANEL_THEMES[0];
     setPanelThemeId(t.id);
@@ -95,6 +96,41 @@ export default function CollaboratorPanel({
     .reduce((sum, o) => sum + o.total, 0);
 
   const pendingOrders = orders.filter(o => o.tenantId === tenant.slug && o.status === 'pendiente');
+
+  const _enPeriodo = (iso: string) => {
+    const d = new Date(iso); const now = new Date();
+    if (dashTimeframe === 'diario') return d.toDateString() === now.toDateString();
+    if (dashTimeframe === 'semanal') { const wk = new Date(now); wk.setDate(now.getDate() - 7); return d >= wk; }
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  };
+  const periodOrders = colabOrders.filter(o => _enPeriodo(o.createdAt));
+  const periodRevenue = periodOrders.filter(o => o.status === 'concretado').reduce((a, o) => a + o.total, 0);
+
+  const downloadColabCSV = () => {
+    let csv = '\uFEFF';
+    csv += 'Codigo,Fecha,Cliente,Telefono,Total,Estado\n';
+    periodOrders.forEach(o => {
+      const fecha = new Date(o.createdAt).toLocaleDateString('es-AR');
+      const cli = (o.customerName || '').replace(/"/g, '""');
+      const est = o.status === 'concretado' ? 'Concretado' : (o.status === 'cancelado' ? 'Cancelado' : 'Pendiente');
+      csv += `"${o.code}","${fecha}","${cli}","${o.customerPhone}",${o.total},"${est}"\n`;
+    });
+    csv += `\n"Total ${dashTimeframe}:","","","",${periodRevenue},""\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Mis_Ventas_${name}_${dashTimeframe}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  const printColabPDF = () => {
+    const periodLabel = dashTimeframe === 'diario' ? 'del día' : dashTimeframe === 'semanal' ? 'de la semana' : 'del mes';
+    const rows = periodOrders.map(o => `<tr><td>${o.code}</td><td>${new Date(o.createdAt).toLocaleDateString('es-AR')}</td><td>${(o.customerName || '').replace(/</g, '&lt;')}</td><td>${o.customerPhone}</td><td>$${o.total.toLocaleString('es-AR')}</td><td>${o.status}</td></tr>`).join('');
+    const w = window.open('', '_blank');
+    if (!w) { alert('Permití las ventanas emergentes para descargar el PDF.'); return; }
+    w.document.write(`<html><head><title>Mis Ventas ${dashTimeframe}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}h1{font-size:20px;margin:0}p{color:#555;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}th,td{border:1px solid #ddd;padding:7px;text-align:left}th{background:#f3f4f6}.tot{margin-top:16px;font-size:15px;font-weight:bold}</style></head><body><h1>Reporte de Ventas ${periodLabel}</h1><p>Vendedor: <b>${name}</b> — ${tenant.storeName}<br>Generado: ${new Date().toLocaleString('es-AR')}</p><table><thead><tr><th>Código</th><th>Fecha</th><th>Cliente</th><th>Teléfono</th><th>Total</th><th>Estado</th></tr></thead><tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#999">Sin ventas en el período</td></tr>'}</tbody></table><div class="tot">Total facturado ${periodLabel}: $${periodRevenue.toLocaleString('es-AR')} ARS</div><script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+  };
 
   return (
     <div id="cms-colab-root" className="min-h-screen bg-slate-100 dark:bg-zinc-950 flex flex-col text-left" style={(() => { const _t = PANEL_THEMES.find(x => x.id === panelThemeId); return _t && _t.bg ? { background: _t.bg } : undefined; })()}>
@@ -195,6 +231,21 @@ export default function CollaboratorPanel({
                       {colabOrders.filter(o => o.status === 'concretado').length} Pares
                     </div>
                   </div>
+                </div>
+
+                {/* Descargar mis ventas */}
+                <div className="bg-slate-50 dark:bg-zinc-800/60 p-5 rounded-xl border border-gray-200 space-y-3">
+                  <h3 className="text-sm font-bold theme-text-main">📥 Descargar mis ventas</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={dashTimeframe} onChange={(e) => setDashTimeframe(e.target.value as any)} className="text-xs p-2.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+                      <option value="diario">Hoy (diario)</option>
+                      <option value="semanal">Últimos 7 días (semanal)</option>
+                      <option value="mensual">Este mes (mensual)</option>
+                    </select>
+                    <button onClick={downloadColabCSV} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2.5 rounded-lg flex items-center gap-1 cursor-pointer"><Download size={13} /> Planilla (.CSV)</button>
+                    <button onClick={printColabPDF} className="text-xs bg-slate-900 dark:bg-zinc-700 hover:bg-slate-800 text-white font-bold px-3 py-2.5 rounded-lg flex items-center gap-1 cursor-pointer"><Printer size={13} /> Informe (PDF)</button>
+                  </div>
+                  <p className="text-[10px] text-gray-400">Exporta tus ventas concretadas del período elegido. El PDF se descarga desde la ventana de impresión (Guardar como PDF).</p>
                 </div>
 
                 {/* Performance progress metrics */}
