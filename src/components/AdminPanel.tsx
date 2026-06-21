@@ -42,6 +42,15 @@ const ADMIN_THEMES: { id: string; name: string; mode: 'dark' | 'light'; accent: 
   { id: 'violeta', name: '🟣 Violeta', mode: 'dark',  accent: '#a78bfa', bg: '#140c20' },
 ];
 
+const ADMIN_TEXT: { id: string; name: string; color: string }[] = [
+  { id: 'auto',   name: 'Auto',       color: '' },
+  { id: 'blanco', name: 'Blanco',     color: '#ffffff' },
+  { id: 'crema',  name: 'Crema',      color: '#f4e9d2' },
+  { id: 'claro',  name: 'Gris claro', color: '#cbd5e1' },
+  { id: 'dorado', name: 'Dorado',     color: '#e9c46a' },
+  { id: 'oscuro', name: 'Oscuro',     color: '#0f172a' },
+];
+
 export default function AdminPanel({
   tenant,
   onUpdateTenant,
@@ -105,6 +114,13 @@ export default function AdminPanel({
     return () => { document.documentElement.style.removeProperty('--theme-primary'); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const [adminTextId, setAdminTextId] = useState<string>(() => {
+    try { return localStorage.getItem('calz_admin_text') || 'auto'; } catch (e) { return 'auto'; }
+  });
+  const applyAdminTextColor = (id: string) => {
+    setAdminTextId(id);
+    try { localStorage.setItem('calz_admin_text', id); } catch (e) {}
+  };
 
   // Local Promo States
   const [newPromoName, setNewPromoName] = useState('');
@@ -386,7 +402,12 @@ export default function AdminPanel({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-stretch text-left" style={(() => { const _t = ADMIN_THEMES.find(x => x.id === adminThemeId); return _t && _t.bg ? { background: _t.bg } : undefined; })()}>
+    <div id="cms-admin-root" className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-stretch text-left" style={(() => { const _t = ADMIN_THEMES.find(x => x.id === adminThemeId); return _t && _t.bg ? { background: _t.bg } : undefined; })()}>
+      {(() => {
+        const _tc = ADMIN_TEXT.find(x => x.id === adminTextId);
+        if (!_tc || !_tc.color) return null;
+        return <style>{`#cms-admin-root label, #cms-admin-root .text-slate-700, #cms-admin-root .text-slate-600, #cms-admin-root .text-slate-500, #cms-admin-root .text-slate-400, #cms-admin-root .text-gray-700, #cms-admin-root .text-gray-600, #cms-admin-root .text-gray-500, #cms-admin-root .text-gray-400 { color: ${_tc.color} !important; }`}</style>;
+      })()}
       {/* Top Banner admin navbar */}
       <header className="bg-slate-900 border-b border-slate-800 text-white p-5 sticky top-0 z-40 shadow-sm flex justify-between items-center px-6 lg:px-10">
         <div className="flex items-center gap-3">
@@ -918,6 +939,19 @@ export default function AdminPanel({
                       <span className="text-[11px] font-bold text-slate-700 dark:text-gray-200">{t.name}</span>
                     </button>
                   ))}
+                </div>
+                <div>
+                  <label className="block text-xs uppercase font-black text-slate-500 dark:text-gray-300 mb-2">Color de las letras del panel</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    {ADMIN_TEXT.map(tc => (
+                      <button key={tc.id} type="button" onClick={() => applyAdminTextColor(tc.id)}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${adminTextId === tc.id ? 'ring-2 ring-offset-2 ring-[var(--theme-primary)] border-transparent' : 'border-slate-200 dark:border-zinc-800 hover:border-slate-400'}`}>
+                        <span className="block w-6 h-6 mx-auto rounded-full mb-1.5 border border-black/20" style={{ background: tc.color || 'linear-gradient(135deg,#ffffff 50%,#111827 50%)' }}></span>
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-gray-200">{tc.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Si en algún tema las etiquetas se leen poco, elegí un color que contraste (ej: Blanco en fondos oscuros).</p>
                 </div>
                 <div className="border-b pb-4 theme-border-main">
                   <h2 className="text-2xl font-black text-slate-800 dark:text-white">Datos del Local e Contacto</h2>
