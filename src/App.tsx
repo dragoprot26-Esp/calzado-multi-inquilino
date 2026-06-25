@@ -135,14 +135,12 @@ export default function App() {
 
   // Cart operations
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<{ [productId: string]: string }>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Authorization state
   const [adminUser, setAdminUser] = useState<TenantConfig | null>(null);
   const [colabUser, setColabUser] = useState<Collaborator | null>(null);
-  const [colabSessionStart, setColabSessionStart] = useState<number>(0);
   const [adminPreviewMode, setAdminPreviewMode] = useState(false);
   
   // Login flow modal state
@@ -202,53 +200,13 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminUser, colabUser, tenants, products, promotions, orders, collaborators]);
 
-  // --- NUBE: sincronizar encargos cada 20s (campanita / pedidos en vivo) ---
-  useEffect(() => {
-    const code = adminUser?.slug || (colabUser as any)?.tenantId;
-    if (!code) return;
-    const iv = setInterval(async () => {
-      const data = await cloud.cloudLoad(code);
-      if (data && data.orders) {
-        setOrders(prev => {
-          const others = prev.filter(o => o.tenantId !== code);
-          const mine = (data.orders as any[]).map((o: any) => ({ ...o, tenantId: code }));
-          const prevMine = prev.filter(o => o.tenantId === code);
-          if (JSON.stringify(prevMine) === JSON.stringify(mine)) return prev;
-          return [...mine, ...others];
-        });
-      }
-      // El admin pudo "cerrar sesión" de este colaborador (pérdida de celular)
-      if (colabUser && data && data.collaborators) {
-        const me = (data.collaborators as any[]).find((c: any) => c.id === colabUser.id);
-        if (me && me.forceLogoutAt && me.forceLogoutAt > colabSessionStart) {
-          cloud.signOut();
-          setColabUser(null);
-          alert('Tu sesión fue cerrada por el administrador. Iniciá sesión de nuevo.');
-        }
-      }
-    }, 20000);
-    return () => clearInterval(iv);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminUser, colabUser, colabSessionStart]);
-
   // --- Modo oscuro SOLO en el panel admin (la tienda pública no se toca) ---
   useEffect(() => {
     const root = document.documentElement;
-    if ((adminUser && !adminPreviewMode) || isOpenAuthForm) root.classList.add('dark');
+    if (adminUser && !adminPreviewMode) root.classList.add('dark');
     else root.classList.remove('dark');
     return () => { root.classList.remove('dark'); };
-  }, [adminUser, adminPreviewMode, isOpenAuthForm]);
-
-  // --- El modal de acceso SIEMPRE arranca pidiendo la licencia (PASO 1) ---
-  useEffect(() => {
-    if (isOpenAuthForm) {
-      setAuthStage('license');
-      setLicenseInput('');
-      setUsernameInput('');
-      setPasswordInput('');
-      setAuthError('');
-    }
-  }, [isOpenAuthForm]);
+  }, [adminUser, adminPreviewMode]);
 
   // Filter Catalog
   const activeProducts = products.filter(p => p.tenantId === activeTenant.slug);
@@ -393,7 +351,6 @@ export default function App() {
         passwordHash: passwordInput, name: usernameInput.trim(), phone: '', avatar: '',
       };
       setColabUser(colab);
-      setColabSessionStart(Date.now());
       setAdminUser(null);
       setIsOpenAuthForm(false);
       setAuthError('');
@@ -471,14 +428,8 @@ export default function App() {
           onAddCollaborator={handleAddCollaborator}
           onDeleteCollaborator={handleDeleteCollaborator}
           onLogout={() => {
-            cloud.signOut();
             setAdminUser(null);
-            setColabUser(null);
             setAdminPreviewMode(false);
-            setAuthStage('license');
-            setLicenseInput('');
-            setUsernameInput('');
-            setPasswordInput('');
           }}
           onPreviewStore={() => {
             setAdminPreviewMode(true);
@@ -568,24 +519,17 @@ export default function App() {
           </nav>
 
           {/* EYE-CATCHING BRAND HERO HERO */}
-          <header className="relative py-12 px-6 overflow-hidden bg-slate-50 dark:bg-zinc-900/40 border-b theme-border-main text-center" style={activeTenant.coverImage ? { backgroundImage: `linear-gradient(rgba(8,10,20,0.6), rgba(8,10,20,0.74)), url(${activeTenant.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+          <header className="relative py-12 px-6 overflow-hidden bg-slate-50 dark:bg-zinc-900/40 border-b theme-border-main text-center">
             <div className="max-w-3xl mx-auto space-y-4">
               <div className="inline-flex items-center gap-1 bg-rose-500/10 text-[var(--theme-primary)] text-[10px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full">
                 <Sparkles size={11} /> ¡Últimas Novedades y Ofertas!
               </div>
-              <h1 className={`text-3xl sm:text-5xl font-black tracking-tight max-w-2xl mx-auto leading-tight ${activeTenant.coverImage ? 'text-white' : 'theme-text-main'}`}>
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight theme-text-main max-w-2xl mx-auto leading-tight">
                 Eleva tu pisada al siguiente nivel de confort
               </h1>
-              <p className={`text-xs sm:text-sm max-w-lg mx-auto ${activeTenant.coverImage ? 'text-gray-200' : 'theme-text-secondary'}`}>
-                Explora el catálogo oficial de <strong className={activeTenant.coverImage ? 'text-white' : 'theme-text-main'}>{activeTenant.storeName}</strong>. Encarga online en simples clics y retira de inmediato por nuestro local comercial.
+              <p className="text-xs sm:text-sm theme-text-secondary max-w-lg mx-auto">
+                Explora el catálogo oficial de <strong className="theme-text-main">{activeTenant.storeName}</strong>. Encarga online en simples clics y retira de inmediato por nuestro local comercial.
               </p>
-            </div>
-
-            {/* Subtle floating background patterns */}
-            <div className="absolute right-10 bottom-6 opacity-10 animate-pulse hidden lg:block">
-              <svg className="w-32 h-32 text-[var(--theme-primary)]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-              </svg>
             </div>
           </header>
 
@@ -630,8 +574,7 @@ export default function App() {
                           src={promo.image}
                           alt={promo.name}
                           referrerPolicy="no-referrer"
-                          onClick={() => setLightboxImg(promo.image)}
-                          className="w-full h-full object-contain hover:scale-110 transition-transform duration-300 cursor-zoom-in"
+                          className="w-full h-full object-contain hover:scale-110 transition-transform duration-300"
                         />
                       </div>
 
@@ -694,39 +637,6 @@ export default function App() {
             )}
 
             {/* -- PUBLIC GENERAL PRODUCTS CATALOG LIST -- */}
-            {activeProducts.filter(p => p.isNovedad).length > 0 && (
-            <section className="space-y-6">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-rose-50 text-[var(--theme-primary)] block">
-                  <Sparkles size={17} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">✨ Últimas Novedades</h2>
-                  <p className="text-xs text-gray-400">Lo último que llegó a la tienda.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {activeProducts.filter(p => p.isNovedad).map(product => (
-                  <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border theme-border-main overflow-hidden shadow-xs flex flex-col">
-                    <div className="aspect-square bg-slate-50 dark:bg-zinc-800 overflow-hidden">
-                      <img src={product.image} referrerPolicy="no-referrer" alt={product.name} onClick={() => setLightboxImg(product.image)} className="w-full h-full object-cover cursor-zoom-in" />
-                    </div>
-                    <div className="p-4 flex flex-col gap-2 flex-1">
-                      <h3 className="font-bold text-sm theme-text-main">{product.name}</h3>
-                      <div className="text-[var(--theme-primary)] font-black">${product.price.toLocaleString('es-AR')} ARS</div>
-                      <div className="flex flex-wrap gap-1">
-                        {product.sizes.map(size => (
-                          <button key={size} onClick={() => setSelectedSizes(prev => ({ ...prev, [product.id]: size }))} className={`px-2 py-1 text-[11px] font-bold rounded-md ${selectedSizes[product.id] === size ? 'theme-btn-primary' : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300'}`}>{size}</button>
-                        ))}
-                      </div>
-                      <button onClick={() => handleAddToCart(product, false)} className="mt-auto w-full py-2 theme-btn-primary rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer">Agregar al Canasto</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-            )}
-
             <section className="space-y-6">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-indigo-50 text-[var(--theme-primary)] block">
@@ -744,7 +654,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="products-grid">
-                  {activeProducts.filter(p => !p.isNovedad).map(product => {
+                  {activeProducts.map(product => {
                     const isSelected = selectedSizes[product.id];
                     return (
                       <div
@@ -765,8 +675,7 @@ export default function App() {
                             src={product.image}
                             alt={product.name}
                             referrerPolicy="no-referrer"
-                            onClick={() => setLightboxImg(product.image)}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 cursor-zoom-in"
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                           />
                         </div>
 
@@ -940,14 +849,6 @@ export default function App() {
             onRemoveItem={handleRemoveFromCart}
             onPlaceOrder={handlePlaceOrder}
           />
-
-          {/* --- LIGHTBOX: tocar una foto para agrandarla --- */}
-          {lightboxImg && (
-            <div onClick={() => setLightboxImg(null)} className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out">
-              <img src={lightboxImg} alt="" referrerPolicy="no-referrer" className="max-w-full max-h-full rounded-xl shadow-2xl object-contain" />
-              <button onClick={() => setLightboxImg(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white text-xl flex items-center justify-center">✕</button>
-            </div>
-          )}
 
           {/* --- VERIFICACION LOGIN LICENSE DRAWER MODAL --- */}
           <AnimatePresence>
