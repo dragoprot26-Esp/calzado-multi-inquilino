@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, ShieldAlert, Key, HelpCircle, Phone, MapPin, Mail, 
-  Share2, ArrowUpRight, Sparkles, Check, CheckCircle2, Ticket, Lock, RefreshCw, QrCode, X, Footprints
+  Share2, ArrowUpRight, Sparkles, Check, CheckCircle2, Ticket, Lock, RefreshCw, QrCode, X, Footprints, Fingerprint
 } from 'lucide-react';
 
 import { 
@@ -21,6 +21,7 @@ import CartModal from './components/CartModal';
 import AdminPanel from './components/AdminPanel';
 import CollaboratorPanel from './components/CollaboratorPanel';
 import * as cloud from './cloud';
+import * as bio from './biometric';
 
 export default function App() {
   // --- Persistent Local Database State Engine ---
@@ -154,6 +155,12 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
   const [verifying, setVerifying] = useState(false);
+
+  // Ingreso biométrico (huella / Face ID) en este dispositivo
+  const [bioAvail, setBioAvail] = useState(false);
+  const [bioOn, setBioOn] = useState(false);
+  const [bioCheck, setBioCheck] = useState(false);
+  useEffect(() => { bio.bioSupported().then(setBioAvail); setBioOn(bio.bioEnabled()); }, []);
 
   // Share widgets feedback
   const [copiedLink, setCopiedLink] = useState(false);
@@ -355,6 +362,50 @@ export default function App() {
       setIsOpenAuthForm(false);
       setAuthError('');
     }
+    // Si tildó "activar huella", la registramos en este equipo (login exitoso)
+    if (bioCheck && bioAvail) {
+      try { await bio.bioEnable({ codigo: code, usuario: usernameInput.trim(), password: passwordInput, role: authRoleSelection }); setBioOn(true); }
+      catch (e) { /* si la huella falla, igual entró */ }
+    }
+  };
+
+  // Ingreso con huella / Face ID: recupera credenciales y hace el login completo
+  const handleBioLogin = async () => {
+    setAuthError('');
+    let creds;
+    try { creds = await bio.bioLogin(); }
+    catch (e) { setAuthError('Huella cancelada o no disponible en este dispositivo.'); return; }
+    if (!creds) { setAuthError('No se pudo leer la huella. Entrá con tus datos.'); return; }
+    const code = creds.codigo;
+    const lic: any = await cloud.validarLicencia(code);
+    if (!lic) { setAuthError('Licencia inválida o vencida.'); return; }
+    const nuevo: TenantConfig = {
+      slug: code, licenseKey: code,
+      adminUsername: lic.usuario_admin || 'admin', adminPasswordHash: lic.pass_admin || '',
+      theme: 'sophisticated-dark', storeName: lic.nombre_negocio || 'Mi Tienda',
+      storePhone: lic.telefono || '', storeEmail: lic.correo_cliente || '', storeAddress: '',
+    };
+    setTenants(prev => { const others = prev.filter(t => t.slug !== code); return [nuevo, ...others]; });
+    setActiveTenantSlug(code);
+    const r = creds.role === 'admin'
+      ? await cloud.asegurarCuentaSeguraDueno(creds.usuario, creds.password, code)
+      : await cloud.asegurarCuentaSeguraColab(creds.usuario, creds.password, code);
+    if (!r.ok) { setAuthError((r.msg || 'No se pudo entrar') + ' — volvé a ingresar tus datos.'); return; }
+    const data = await cloud.cloudLoad(code);
+    if (data) applyCloudData(code, data);
+    if (creds.role === 'admin') {
+      const merged = { ...nuevo, ...((data && data.config) ? (data.config as any) : {}), slug: code } as TenantConfig;
+      setAdminUser(merged); setColabUser(null);
+    } else {
+      const colabs: any[] = (data && data.collaborators) ? (data.collaborators as any[]) : [];
+      const found = colabs.find(c => (c.username || '').toLowerCase() === creds.usuario.toLowerCase());
+      const colab: Collaborator = found ? { ...found, tenantId: code } : {
+        id: 'colab-' + Date.now(), tenantId: code, username: creds.usuario,
+        passwordHash: creds.password, name: creds.usuario, phone: '', avatar: '',
+      };
+      setColabUser(colab); setAdminUser(null);
+    }
+    setIsOpenAuthForm(false); setAuthError('');
   };
 
   // State Sync modifiers for Admin Panel
@@ -895,6 +946,22 @@ export default function App() {
                   {authStage === 'license' ? (
                     /* STAGE 1: ENTER AND VERIFY PRODUCT LICENCE */
                     <div className="space-y-4">
+                      {bioAvail && bioOn && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={handleBioLogin}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md"
+                          >
+                            <Fingerprint size={16} /> Ingresar con huella / Face ID
+                          </button>
+                          <div className="flex items-center gap-2 my-3">
+                            <span className="flex-1 h-px bg-gray-200 dark:bg-zinc-700" />
+                            <span className="text-[10px] text-gray-400 uppercase">o con tu licencia</span>
+                            <span className="flex-1 h-px bg-gray-200 dark:bg-zinc-700" />
+                          </div>
+                        </div>
+                      )}
                       <div className="space-y-1">
                         <label className="block text-xs uppercase font-extrabold text-slate-500">
                           Paso 1: Licencia Habilitante del Inquilino
@@ -980,7 +1047,7 @@ export default function App() {
                             value={usernameInput}
                             onChange={(e) => setUsernameInput(e.target.value)}
                             placeholder={authRoleSelection === 'admin' ? 'Ej. admin' : 'Ej. mateo o sofia'}
-                            className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)]"
+                            className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)]"
                             required
                           />
                         </div>
@@ -994,12 +1061,24 @@ export default function App() {
                             value={passwordInput}
                             onChange={(e) => setPasswordInput(e.target.value)}
                             placeholder="Tu contraseña"
-                            className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)]"
+                            className="w-full text-sm p-3 border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)]"
                             required
                           />
                         </div>
 
                       </div>
+
+                      {bioAvail && !bioOn && (
+                        <label className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-zinc-800 p-3 rounded-xl border cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={bioCheck}
+                            onChange={(e) => setBioCheck(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-emerald-600"
+                          />
+                          <span>🔒 <strong>Activar ingreso con huella / Face ID</strong> en este dispositivo, para no volver a tipear las credenciales.</span>
+                        </label>
+                      )}
 
                       <div className="flex gap-2">
                         <button
