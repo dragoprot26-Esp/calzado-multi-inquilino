@@ -94,3 +94,29 @@ begin
   return jsonb_build_object('ok', true, 'datos', d);
 end $$;
 grant execute on function public.calzado_hist_restaurar(text, bigint) to authenticated;
+
+-- 6) Guardar copia a mano (snapshot on-demand desde el panel) -----------
+--    Copia el estado ACTUAL de calzado_backups al historial, sin depender
+--    de que haya un cambio. Respeta el límite de 10.
+create or replace function public.calzado_hist_snapshot(p_codigo text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare d jsonb; tot int;
+begin
+  if auth.uid() is null then return jsonb_build_object('ok', false, 'error', 'sesion'); end if;
+  if not exists (select 1 from public.tl_miembros where user_id = auth.uid() and tenant_id = p_codigo) then
+    return jsonb_build_object('ok', false, 'error', 'no_miembro');
+  end if;
+  select datos into d from public.calzado_backups where tenant_id = p_codigo limit 1;
+  if d is null or d = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'sin_datos'); end if;
+  insert into public.calzado_backups_hist (tenant_id, datos, guardado) values (p_codigo, d, now());
+  delete from public.calzado_backups_hist
+    where id in (
+      select id from public.calzado_backups_hist
+       where tenant_id = p_codigo
+       order by guardado desc
+       offset 10
+    );
+  select count(*) into tot from public.calzado_backups_hist where tenant_id = p_codigo;
+  return jsonb_build_object('ok', true, 'total', tot);
+end $$;
+grant execute on function public.calzado_hist_snapshot(text) to authenticated;
