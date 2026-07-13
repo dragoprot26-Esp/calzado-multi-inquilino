@@ -5,9 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart3, Palette, Settings, Footprints, Tag, FileClock, Users, 
+  BarChart3, Palette, Settings, Footprints, Tag, FileClock, Users,
   Plus, Trash, Check, X, LogOut, ArrowRight, UserPlus, FileEdit, HelpCircle, Eye, RefreshCw, Bell,
-  Download, Printer
+  Download, Printer, ShieldCheck
 } from 'lucide-react';
 import { 
   TenantConfig, Product, Promotion, Order, Collaborator, ThemeStyle, CustomField 
@@ -30,6 +30,8 @@ interface AdminPanelProps {
   onDeleteCollaborator: (id: string) => void;
   onLogout: () => void;
   onPreviewStore: () => void;
+  onListBackups?: () => Promise<any[]>;
+  onRestoreBackup?: (id: number) => Promise<boolean>;
 }
 
 const ADMIN_THEMES: { id: string; name: string; mode: 'dark' | 'light'; accent: string; bg: string }[] = [
@@ -67,8 +69,30 @@ export default function AdminPanel({
   onAddCollaborator,
   onLogout,
   onPreviewStore,
+  onListBackups,
+  onRestoreBackup,
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tema' | 'config' | 'productos' | 'promociones' | 'encargos' | 'colaborador' | 'novedades'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tema' | 'config' | 'productos' | 'promociones' | 'encargos' | 'colaborador' | 'novedades' | 'backups'>('dashboard');
+
+  // ── Copias de seguridad (rollback) ──
+  const [backups, setBackups] = useState<any[]>([]);
+  const [backupsBusy, setBackupsBusy] = useState(false);
+  const cargarBackups = async () => {
+    if (!onListBackups) return;
+    setBackupsBusy(true);
+    try { setBackups(await onListBackups()); }
+    finally { setBackupsBusy(false); }
+  };
+  const restaurarBackup = async (id: number) => {
+    if (!onRestoreBackup) return;
+    if (!window.confirm('¿Restaurar esta copia? La versión actual quedará respaldada, así que siempre podés volver atrás.')) return;
+    setBackupsBusy(true);
+    try {
+      const ok = await onRestoreBackup(id);
+      window.alert(ok ? 'Copia restaurada. La tienda se actualizó con esa versión.' : 'No se pudo restaurar la copia.');
+      if (ok) await cargarBackups();
+    } finally { setBackupsBusy(false); }
+  };
   
   // Local Config states
   const [storeName, setStoreName] = useState(tenant.storeName);
@@ -515,10 +539,11 @@ export default function AdminPanel({
               { id: 'promociones', name: 'Campañas Promos', icon: <Tag size={17} /> },
               { id: 'encargos', name: 'Gestionar Encargos', icon: <FileClock size={17} /> },
               { id: 'colaborador', name: 'Asignar Colaborador', icon: <Users size={17} /> },
+              { id: 'backups', name: 'Copia de seguridad', icon: <ShieldCheck size={17} /> },
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => { setActiveTab(tab.id as any); if (tab.id === 'backups') cargarBackups(); }}
                 className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-bold transition-all ${
                   activeTab === tab.id
                     ? 'bg-[var(--theme-primary)] text-white shadow-xs'
@@ -1874,6 +1899,59 @@ export default function AdminPanel({
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* COPIA DE SEGURIDAD TAB */}
+            {activeTab === 'backups' && (
+              <div className="space-y-6" id="view-backups">
+                <div className="border-b pb-4 theme-border-main">
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                    <ShieldCheck size={22} /> Copia de seguridad
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    Se guarda una copia automática cada vez que cambian los datos de tu tienda. Se conservan las últimas 10; podés volver a cualquiera con un clic. Restaurar también queda respaldado, así que siempre podés volver atrás.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={cargarBackups}
+                    disabled={backupsBusy}
+                    className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <RefreshCw size={14} /> {backupsBusy ? 'Cargando…' : 'Actualizar lista'}
+                  </button>
+                  <span className="text-[11px] text-gray-400">
+                    {backups.length} {backups.length === 1 ? 'copia disponible' : 'copias disponibles'} (máximo 10)
+                  </span>
+                </div>
+
+                {backups.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 bg-slate-50 dark:bg-zinc-800/40 border rounded-2xl text-sm">
+                    Todavía no hay copias guardadas. Se van creando solas a medida que editás la tienda.
+                  </div>
+                ) : (
+                  <div className="space-y-3" id="backups-list">
+                    {backups.map((b: any) => (
+                      <div key={b.id} className="p-4 bg-white dark:bg-zinc-800 rounded-xl border flex gap-3 justify-between items-center text-left">
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm theme-text-main">{new Date(b.guardado).toLocaleString('es-AR')}</h4>
+                          <p className="text-[11px] text-gray-400">
+                            {(b.productos ?? 0)} productos · {(b.pedidos ?? 0)} pedidos · {(b.colaboradores ?? 0)} colaboradores
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => restaurarBackup(b.id)}
+                          disabled={backupsBusy}
+                          className="shrink-0 bg-[var(--theme-primary)] hover:opacity-90 text-white text-xs font-black px-4 py-2 rounded-lg disabled:opacity-50"
+                        >
+                          Restaurar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
