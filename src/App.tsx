@@ -459,6 +459,21 @@ export default function App() {
     setColabUser(colab);
   };
 
+  // Copias de seguridad (rollback): listar y restaurar la tienda activa.
+  const handleListBackups = async (): Promise<any[]> => {
+    const code = adminUser?.slug;
+    if (!code) return [];
+    return await cloud.calzadoHistListar(code);
+  };
+  const handleRestoreBackup = async (id: number): Promise<boolean> => {
+    const code = adminUser?.slug;
+    if (!code) return false;
+    const datos = await cloud.calzadoHistRestaurar(code, id);
+    if (!datos) return false;
+    applyCloudData(code, datos);
+    return true;
+  };
+
   // Share action
   const handleSharePage = () => {
     const rawUrl = `${window.location.origin}${window.location.pathname}?tenant=${activeTenant.slug}`;
@@ -496,6 +511,8 @@ export default function App() {
             setAdminPreviewMode(true);
             setActiveTenantSlug(adminUser.slug);
           }}
+          onListBackups={handleListBackups}
+          onRestoreBackup={handleRestoreBackup}
         />
       ) : colabUser ? (
         <CollaboratorPanel

@@ -206,3 +206,13 @@ export async function calzadoAgregarPedido(codigo: string, pedido: any): Promise
   try { await rpc('calzado_agregar_pedido', { p_codigo: codigo, p_pedido: pedido }, false); }
   catch (e) { /* noop */ }
 }
+
+// ── Copias de seguridad / rollback ──────────────────────────────────────
+export async function calzadoHistListar(codigo: string): Promise<any[]> {
+  try { const r = await rpc('calzado_hist_listar', { p_codigo: codigo }); return Array.isArray(r) ? r : []; }
+  catch (e) { return []; }
+}
+export async function calzadoHistRestaurar(codigo: string, id: number): Promise<any | null> {
+  try { const r = await rpc('calzado_hist_restaurar', { p_codigo: codigo, p_id: id }); return (r && r.ok) ? r.datos : null; }
+  catch (e) { return null; }
+}
