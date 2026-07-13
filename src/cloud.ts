@@ -216,3 +216,7 @@ export async function calzadoHistRestaurar(codigo: string, id: number): Promise<
   try { const r = await rpc('calzado_hist_restaurar', { p_codigo: codigo, p_id: id }); return (r && r.ok) ? r.datos : null; }
   catch (e) { return null; }
 }
+export async function calzadoHistGuardar(codigo: string): Promise<boolean> {
+  try { const r = await rpc('calzado_hist_snapshot', { p_codigo: codigo }); return !!(r && r.ok); }
+  catch (e) { return false; }
+}

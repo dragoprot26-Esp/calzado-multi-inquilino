@@ -473,6 +473,20 @@ export default function App() {
     applyCloudData(code, datos);
     return true;
   };
+  const handleSaveBackup = async (): Promise<boolean> => {
+    const code = adminUser?.slug;
+    if (!code) return false;
+    // Guardamos el estado actual en la nube y luego fijamos la copia (snapshot).
+    const cfg = tenants.find(x => x.slug === code) || adminUser || {};
+    await cloud.cloudSave(code, {
+      config: cfg as any,
+      products: products.filter(p => p.tenantId === code),
+      promotions: promotions.filter(p => p.tenantId === code),
+      orders: orders.filter(o => o.tenantId === code),
+      collaborators: collaborators.filter(c => c.tenantId === code),
+    });
+    return await cloud.calzadoHistGuardar(code);
+  };
 
   // Share action
   const handleSharePage = () => {
@@ -513,6 +527,7 @@ export default function App() {
           }}
           onListBackups={handleListBackups}
           onRestoreBackup={handleRestoreBackup}
+          onSaveBackup={handleSaveBackup}
         />
       ) : colabUser ? (
         <CollaboratorPanel
