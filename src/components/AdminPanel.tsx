@@ -32,6 +32,7 @@ interface AdminPanelProps {
   onPreviewStore: () => void;
   onListBackups?: () => Promise<any[]>;
   onRestoreBackup?: (id: number) => Promise<boolean>;
+  onSaveBackup?: () => Promise<boolean>;
 }
 
 const ADMIN_THEMES: { id: string; name: string; mode: 'dark' | 'light'; accent: string; bg: string }[] = [
@@ -71,6 +72,7 @@ export default function AdminPanel({
   onPreviewStore,
   onListBackups,
   onRestoreBackup,
+  onSaveBackup,
 }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tema' | 'config' | 'productos' | 'promociones' | 'encargos' | 'colaborador' | 'novedades' | 'backups'>('dashboard');
 
@@ -90,6 +92,15 @@ export default function AdminPanel({
     try {
       const ok = await onRestoreBackup(id);
       window.alert(ok ? 'Copia restaurada. La tienda se actualizó con esa versión.' : 'No se pudo restaurar la copia.');
+      if (ok) await cargarBackups();
+    } finally { setBackupsBusy(false); }
+  };
+  const guardarBackup = async () => {
+    if (!onSaveBackup) return;
+    setBackupsBusy(true);
+    try {
+      const ok = await onSaveBackup();
+      window.alert(ok ? 'Copia guardada. Ya podés volver a esta versión cuando quieras.' : 'No se pudo guardar la copia.');
       if (ok) await cargarBackups();
     } finally { setBackupsBusy(false); }
   };
@@ -1914,7 +1925,14 @@ export default function AdminPanel({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={guardarBackup}
+                    disabled={backupsBusy}
+                    className="bg-[var(--theme-primary)] hover:opacity-90 text-white text-xs font-black px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <ShieldCheck size={14} /> {backupsBusy ? 'Guardando…' : 'Guardar copia ahora'}
+                  </button>
                   <button
                     onClick={cargarBackups}
                     disabled={backupsBusy}
