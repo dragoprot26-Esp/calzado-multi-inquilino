@@ -147,13 +147,35 @@ export default function AdminPanel({
 
   // Handle image upload reader
   const handleImageUpload = (file: File, setter: (val: string) => void) => {
+    if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setter(reader.result as string);
+      const dataUrl = reader.result as string;
+      // Comprimimos la foto (máx 1000px, JPEG ~0.8) para no reventar el
+      // almacenamiento del navegador ni la nube con base64 gigantes.
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX = 1000;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width >= height) { height = Math.round((height * MAX) / width); width = MAX; }
+            else { width = Math.round((width * MAX) / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { setter(dataUrl); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          setter(canvas.toDataURL('image/jpeg', 0.8));
+        } catch (err) {
+          setter(dataUrl); // si algo falla, usamos el original
+        }
+      };
+      img.onerror = () => setter(dataUrl); // no era imagen rasterizable (ej. SVG)
+      img.src = dataUrl;
     };
-    if (file) {
-      reader.readAsDataURL(file);
-    }
+    reader.readAsDataURL(file);
   };
 
   const handleSaveConfig = () => {
