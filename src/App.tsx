@@ -101,25 +101,35 @@ export default function App() {
     return saved ? JSON.parse(saved) : defaultOrders;
   });
 
+  // Guardado local seguro: si el navegador se queda sin espacio
+  // (QuotaExceededError por imágenes grandes) NO debe romper la app.
+  const guardarLocal = (clave: string, valor: any) => {
+    try {
+      localStorage.setItem(clave, JSON.stringify(valor));
+    } catch (e) {
+      console.warn('No se pudo guardar en el navegador (' + clave + '):', e);
+    }
+  };
+
   // Save states modifications automatically
   useEffect(() => {
-    localStorage.setItem('saas_tenants', JSON.stringify(tenants));
+    guardarLocal('saas_tenants', tenants);
   }, [tenants]);
 
   useEffect(() => {
-    localStorage.setItem('saas_products', JSON.stringify(products));
+    guardarLocal('saas_products', products);
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('saas_promotions', JSON.stringify(promotions));
+    guardarLocal('saas_promotions', promotions);
   }, [promotions]);
 
   useEffect(() => {
-    localStorage.setItem('saas_collaborators', JSON.stringify(collaborators));
+    guardarLocal('saas_collaborators', collaborators);
   }, [collaborators]);
 
   useEffect(() => {
-    localStorage.setItem('saas_orders', JSON.stringify(orders));
+    guardarLocal('saas_orders', orders);
   }, [orders]);
 
 
