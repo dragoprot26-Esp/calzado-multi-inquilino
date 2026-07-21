@@ -138,7 +138,7 @@ export default function App() {
   // Detect tenant in URL query, otherwise fallback to first tenant
   const [activeTenantSlug, setActiveTenantSlug] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
-    const slugParam = params.get('tenant') || params.get('local') || params.get('referido');
+    const slugParam = params.get('codigo') || params.get('tenant') || params.get('local') || params.get('referido');
     return slugParam || defaultTenants[0].slug;
   });
 
@@ -190,7 +190,7 @@ export default function App() {
   // --- NUBE: catálogo público si la URL trae ?tenant=CODIGO ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const code = (params.get('tenant') || params.get('local') || params.get('referido') || '').trim();
+    const code = (params.get('codigo') || params.get('tenant') || params.get('local') || params.get('referido') || '').trim();
     if (!code) return;
     (async () => {
       const pub = await cloud.calzadoPublica(code);
